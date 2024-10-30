@@ -1,0 +1,5 @@
+Reference paper for design specification: https://arxiv.org/abs/2407.01739#
+
+Acoustic Soft Tactile Skin paper: https://openresearch.surrey.ac.uk/permalink/44SUR_INST/15d8lgh/alma99921665902346
+
+Other Paper: https://openresearch.surrey.ac.uk/permalink/44SUR_INST/15d8lgh/alma99921665802346
