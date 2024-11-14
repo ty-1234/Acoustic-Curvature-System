@@ -1,5 +1,15 @@
 #!/usr/bin/env python3
 
+"""
+Module Name: Data Collection for Cablibration
+Author: Giuliano Gemmani
+Email: giulianogemmani@gmail.com
+Date: YYYY-MM-DD
+
+Description:
+    A brief summary of the module’s purpose and functionality.
+
+"""
 
 from __future__ import print_function
 from six.moves import input
@@ -19,6 +29,7 @@ from sensor_msgs.msg import JointState
 from std_msgs.msg import String
 from moveit_commander.conversions import pose_to_list
 from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import Pose
 
 
 def all_close(goal, actual, tolerance):
@@ -56,18 +67,22 @@ class FrankaDataCollection(object):
     def __init__(self):
         super(FrankaDataCollection, self).__init__()
 
+        # Initialize moveit_commander
         moveit_commander.roscpp_initialize(sys.argv)
+
+        # Initialize node
         rospy.init_node("move_group_python_interface_tutorial", anonymous=True)
 
-
+        # Initialize tf listener
         robot = moveit_commander.RobotCommander()
-
+        # Inizitalize the planning scene
         scene = moveit_commander.PlanningSceneInterface()
-         
+        
+        # Initialize the move group for the panda_arm
         group_name = "panda_arm"
         move_group = moveit_commander.MoveGroupCommander(group_name)
 
-
+        # Set the planner publiser
         display_trajectory_publisher = rospy.Publisher(
             "/move_group/display_planned_path",
             moveit_msgs.msg.DisplayTrajectory,
@@ -103,6 +118,16 @@ class FrankaDataCollection(object):
         self.eef_link = eef_link
         self.group_names = group_names
 
+        # Joint names
+        self.joint_names = {
+            "joint1": "panda_joint1",
+            "joint2": "panda_joint2",
+            "joint3": "panda_joint3",
+            "joint4": "panda_joint4",
+            "joint5": "panda_joint5",
+            "joint6": "panda_joint6",
+            "joint7": "panda_joint7"
+        }
 
         # HOME : (joints & ee_pos + ee_or)
 
@@ -113,62 +138,31 @@ class FrankaDataCollection(object):
         self.joint_A = [-0.07225411493736401, 0.7042132443777533, -0.762403663134082, -1.9573604556635804, 0.689735511051284, 2.3939630041746365, -0.4795062159217066]
         self.pose_A = ([0.42286654805779356, -0.43881502835294306, 0.19661691760359146], [0.9998739918297471, 0.012466862743398636, -0.0010366787916414417, 0.009772568386409755])
         
-        # AB path to be coevered, only along y direction 
-
+        # AB path to be covered, only along y direction: reference (point A), lenght (0.03 m) and end position (point B)
         self.AB_dist = 0.03 # in [m] ---
-        
         self.pose_B = self.pose_A
         self.pose_B[0][1] += self.AB_dist
+
+        # PATH cooverage parameters
+        """
+        self.n_samples =
+        self.steplenght =
+        self.cycles =
+
+        self.n_datapoints = self.n_samples * self.cycles
+
+        self.time_of_pushing =
+        self.n_pushingactions = 0
+        """
+        
 
     """    
         
         
-        self.pose_B = self.pose_A
-        self.pose_B[0].position.y += self.AB_dist
-        
+       
 
-    
-            def go_to_joint_state(self):
-        # Copy class variables to local variables to make the web tutorials more clear.
-        # In practice, you should use the class variables directly unless you have a good
-        # reason not to.
-        move_group = self.move_group
-
-        ## BEGIN_SUB_TUTORIAL plan_to_joint_state
-        ##
-        ## Planning to a Joint Goal
-        ## ^^^^^^^^^^^^^^^^^^^^^^^^
-        ## The Panda's zero configuration is at a `singularity <https://www.quora.com/Robotics-What-is-meant-by-kinematic-singularity>`_, so the first
-        ## thing we want to do is move it to a slightly better configuration.
-        ## We use the constant `tau = 2*pi <https://en.wikipedia.org/wiki/Turn_(angle)#Tau_proposals>`_ for convenience:
-        # We get the joint values from the group and change some of the values:
-        joint_goal = move_group.get_current_joint_values()
-
-
-        # Sepcify joint state`s GOAL
-        
-        joint_goal[0] = 0
-        joint_goal[1] = -tau / 8
-        joint_goal[2] = 0
-        joint_goal[3] = -tau / 4
-        joint_goal[4] = 0
-        joint_goal[5] = tau / 6  # 1/6 of a turn
-        joint_goal[6] = 0
         
         
-
-        # The go command can be called with joint values, poses, or without any
-        # parameters if you have already set the pose or joint target for the group
-        #move_group.go(joint_goal, wait=True)
-
-        # Calling ``stop()`` ensures that there is no residual movement
-        #move_group.stop()
-
-        ## END_SUB_TUTORIAL
-
-        # For testing:
-        current_joints = move_group.get_current_joint_values()
-        return all_close(joint_goal, current_joints, 0.01)
 
     def go_to_pose_goal(self):
         # Copy class variables to local variables to make the web tutorials more clear.
@@ -337,7 +331,8 @@ class FrankaDataCollection(object):
         ## END_SUB_TUTORIAL
 
     """
-
+    # Get the current ee-pose
+    # Returns the position and orientation of the end-effector in a tuple
     def get_ee_pose(self):
         
         pose = self.move_group.get_current_pose().pose
@@ -347,16 +342,17 @@ class FrankaDataCollection(object):
         
         return [pose.position.x, pose.position.y, pose.position.z], [pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w]
 
-
+    # Go to home position in joint space
     def go_home(self):
         joint_goal = self.joint_home
-        #self.move_group.set_planner_id("PTP")         # Set to be the straight line planner
         self.move_group.go(joint_goal, wait=True)
         self.move_group.stop()
 
     
 
-    def create_pose(self, tuple_pos_ee):
+    # Create an  STAMPED ee-pose in R^3 from a tuple of position and orientation
+    # Stamped pose contains: header (frame_id, stamp, seq) and pose (position, orientation)
+    def create_poseStamped(self, tuple_pos_ee):
         pose = PoseStamped()
         pose.header.frame_id = '/panda_link0'
         pose.pose.position.x = tuple_pos_ee[0][0]
@@ -367,12 +363,59 @@ class FrankaDataCollection(object):
         pose.pose.orientation.y = tuple_pos_ee[1][1]
         pose.pose.orientation.z = tuple_pos_ee[1][2]
         pose.pose.orientation.w = tuple_pos_ee[1][3]
+
+        rospy.loginfo("End-Effector Position: x={}, y={}, z={}".format(
+            pose.pose.position.x, pose.pose.position.y, pose.pose.position.z
+        ))
+        rospy.loginfo("End-Effector Orientation: x={}, y={}, z={}, w={}".format(
+            pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z, pose.pose.orientation.w
+        ))
+
         return pose
+
     
-    #def log_position(self):
-	#	"""Save the current joint state to a private member variable"""
-	#	self.grid_joint_state = self.move_group.get_current_joint_values() 
-	#	rospy.loginfo(f"Position logged: Joint state saved to grid_joint_state")
+    # Plan a path to a given ee-pose
+    def go_to_pose_Cartesian(self, pose_target):
+        
+        # Check if the pose is a PoseStamped object: change into a tuple
+        if isinstance(pose_target, PoseStamped):
+            pose_goal = pose_target.pose
+
+        pose_goal = geometry_msgs.msg.Pose()       
+        self.move_group.set_pose_target(pose_goal)
+        
+        success = self.move_group.go(wait=True)
+        if not success:
+            rospy.loginfo("Failed to reach the goal pose")
+        #else:
+        #    rospy.loginfo("Goal pose reached")
+        
+        self.move_group.stop() # Calling `stop()` ensures that there is no residual movement
+        self.move_group.clear_pose_targets()
+    
+    # Go to A (reference) in joint space
+    def go_to_A(self):
+        joint_goal = self.joint_A
+        self.move_group.go(joint_goal, wait=True)
+        self.move_group.stop()
+
+    # Go to B (end position) in joint space
+    def go_to_B(self, pose_B):
+        pose_goal = self.create_pose(self.pose_B)
+        plan = self.plan_path(pose_goal)
+        return plan
+    
+
+    def check_pose_type(self, pose):
+        if isinstance(pose, PoseStamped):
+            rospy.loginfo("The object is a PoseStamped object.")
+            # Handle PoseStamped-specific logic here
+        elif isinstance(pose, Pose):
+            rospy.loginfo("The object is a Pose object.")
+            # Handle Pose-specific logic here
+        else:
+            rospy.logwarn("The object is neither a Pose nor PoseStamped.")
+
 
 if __name__ == '__main__':
     robot = FrankaDataCollection()
