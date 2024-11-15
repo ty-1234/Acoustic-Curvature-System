@@ -14,22 +14,42 @@ Description:
 from __future__ import print_function
 from six.moves import input
 
+# Libraries needed
+import os
 import sys
-import copy
+import cv2
+import time
+import math
 import rospy
-import moveit_commander
+import random
+import datetime
+import message_filters
 import moveit_msgs.msg
-import geometry_msgs.msg
-import tf2_ros
+import moveit_commander
+import matplotlib.pyplot
+import pathlib2 as pathlib
 
-from math import pi, tau, dist, fabs, cos
+import numpy as np
+import pandas as pd
 
+from matplotlib.pyplot import imsave
+from math import pi, dist, fabs, cos
+
+#from cv_bridge import CvBridge
+from std_msgs.msg import String, Bool, Int16MultiArray
+from shape_msgs.msg import SolidPrimitive
+from sensor_msgs.msg import JointState, Image
+from moveit_msgs.msg import CollisionObject, DisplayTrajectory, MotionPlanRequest, Constraints, PositionConstraint, JointConstraint
+from geometry_msgs.msg import PoseStamped, Pose, Point
+from actionlib_msgs.msg import GoalStatusArray
+from tf.transformations import euler_from_quaternion, quaternion_from_euler
+from moveit_commander.conversions import pose_to_list
+from pathlib import Path
 
 from sensor_msgs.msg import JointState
 from std_msgs.msg import String
 from moveit_commander.conversions import pose_to_list
-from geometry_msgs.msg import PoseStamped
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Pose, PoseStamped
 
 
 def all_close(goal, actual, tolerance):
@@ -71,7 +91,7 @@ class FrankaDataCollection(object):
         moveit_commander.roscpp_initialize(sys.argv)
 
         # Initialize node
-        rospy.init_node("move_group_python_interface_tutorial", anonymous=True)
+        rospy.init_node("calibration_node", anonymous=True)
 
         # Initialize tf listener
         robot = moveit_commander.RobotCommander()
@@ -82,6 +102,20 @@ class FrankaDataCollection(object):
         group_name = "panda_arm"
         move_group = moveit_commander.MoveGroupCommander(group_name)
 
+
+        self.pose_publisher = rospy.Publisher('/generated_pose', PoseStamped, queue_size=10)
+
+        # Subscribe to the PoseStamped topic (adjust topic name as needed)
+        self.pose_subscriber = rospy.Subscriber('/current_pose', PoseStamped, self.pose_callback)
+
+        # Defines the topic on which the robot publishes the trajectory
+        self.display_trajectory_publisher = rospy.Publisher('/move_group/display_planned_path', moveit_msgs.msg.DisplayTrajectory, queue_size=20)
+        self.planning_frame = self.move_group.get_planning_frame() #get the planning frame
+        self.eef_link = self.move_group.get_end_effector_link() # get ee frame 
+
+
+        # self.move_group.set_end_effector_link("panda_link8") # sets the ee-link to panda_link8
+        self.group_names = self.robot.get_group_names()
         # Set the planner publiser
         display_trajectory_publisher = rospy.Publisher(
             "/move_group/display_planned_path",
@@ -129,230 +163,74 @@ class FrankaDataCollection(object):
             "joint7": "panda_joint7"
         }
 
-        # HOME : (joints & ee_pos + ee_or)
+        # HOME : joints & ee_pose (position, orientation)
 
         self.joint_home = [0.06841830223171314, -0.41813771533517224, -0.12852136230674158, -1.9645842290600706, -0.03316074410412047, 1.6035182970937927, 0.8142089765552016]
-        self.pose_home = [0.4223942641978751, -0.04042834717301551, 0.6434531923890092]
-        self.pose_orientation = [-0.9988081975410994, 0.039553416742988796, -0.027085673649872546, 0.009169407373883585]
+        self.pose_home = ([0.4223942641978751, -0.04042834717301551, 0.6434531923890092], [-0.9988081975410994, 0.039553416742988796, -0.027085673649872546, 0.009169407373883585])
 
         self.joint_A = [-0.07225411493736401, 0.7042132443777533, -0.762403663134082, -1.9573604556635804, 0.689735511051284, 2.3939630041746365, -0.4795062159217066]
         self.pose_A = ([0.42286654805779356, -0.43881502835294306, 0.19661691760359146], [0.9998739918297471, 0.012466862743398636, -0.0010366787916414417, 0.009772568386409755])
+        self.pose_A[0][2] += self.offset_pushing # add offset to the z coordinate upwards
         
-        # AB path to be covered, only along y direction: reference (point A), lenght (0.03 m) and end position (point B)
+
+        # AB path to be covered, only along y direction: reference (point A), lenght (0.03 m) and end position (point B), same orientation as A
         self.AB_dist = 0.03 # in [m] ---
         self.pose_B = self.pose_A
         self.pose_B[0][1] += self.AB_dist
 
+        # 
+        self.pose_A = self.create_pose(self.pose_A)
+        self.pose_B = self.create_pose(self.pose_B)
+
+        self.current_pose = None
+        
+
+
         # PATH cooverage parameters
-        """
-        self.n_samples =
-        self.steplenght =
-        self.cycles =
+        
+        self.n_samples =100
+        self.steplenght = self.AB_dist / self.n_samples # in [m]
+        self.cycles = 30
 
         self.n_datapoints = self.n_samples * self.cycles
 
-        self.time_of_pushing =
+        self.offset_pushing = 0.001 # in [m]
+        self.time_of_pushing = 2 # in [s]
         self.n_pushingactions = 0
-        """
+        self.n_datapoints_collected = 0
         
+        # Saving directories and parameters
+        # Define the path to a directory
 
-    """    
-        
-        
-       
+        self.DATA_DIR = data_dir
+        directory_path = Path("/home/your_username/your_directory")
 
-        
-        
-
-    def go_to_pose_goal(self):
-        # Copy class variables to local variables to make the web tutorials more clear.
-        # In practice, you should use the class variables directly unless you have a good
-        # reason not to.
-        move_group = self.move_group
-
-        ## BEGIN_SUB_TUTORIAL plan_to_pose
-        ##
-        ## Planning to a Pose Goal
-        ## ^^^^^^^^^^^^^^^^^^^^^^^
-        ## We can plan a motion for this group to a desired pose for the
-        ## end-effector:
-        pose_goal = geometry_msgs.msg.Pose()
-        pose_goal.orientation.w = 1.0
-        pose_goal.position.x = 0.4
-        pose_goal.position.y = 0.1
-        pose_goal.position.z = 0.4
-
-        move_group.set_pose_target(pose_goal)
-
-        ## Now, we call the planner to compute the plan and execute it.
-        # `go()` returns a boolean indicating whether the planning and execution was successful.
-        success = move_group.go(wait=True)
-        # Calling `stop()` ensures that there is no residual movement
-        move_group.stop()
-        # It is always good to clear your targets after planning with poses.
-        # Note: there is no equivalent function for clear_joint_value_targets().
-        move_group.clear_pose_targets()
-
-        ## END_SUB_TUTORIAL
-
-        # For testing:
-        # Note that since this section of code will not be included in the tutorials
-        # we use the class variable rather than the copied state variable
-        current_pose = self.move_group.get_current_pose().pose
-        return all_close(pose_goal, current_pose, 0.01)
-
-    def plan_cartesian_path(self, scale=1):
-       
-        move_group = self.move_group
-
-        ## BEGIN_SUB_TUTORIAL plan_cartesian_path
-        ##
-        ## Cartesian Paths
-        ## ^^^^^^^^^^^^^^^
-        ## You can plan a Cartesian path directly by specifying a list of waypoints
-        ## for the end-effector to go through. If executing  interactively in a
-        ## Python shell, set scale = 1.0.
-        ##
-        waypoints = []
-
-        wpose = move_group.get_current_pose().pose
-        print(wpose)
-
-        wpose.position.z -= scale * 0.1  # First move up (z)
-        wpose.position.y += scale * 0.2  # and sideways (y)
-        waypoints.append(copy.deepcopy(wpose))
-
-        wpose.position.x += scale * 0.1  # Second move forward/backwards in (x)
-        waypoints.append(copy.deepcopy(wpose))
-
-        wpose.position.y -= scale * 0.1  # Third move sideways (y)
-        waypoints.append(copy.deepcopy(wpose))
-
-        # We want the Cartesian path to be interpolated at a resolution of 1 cm
-        # which is why we will specify 0.01 as the eef_step in Cartesian
-        # translation.  We will disable the jump threshold by setting it to 0.0,
-        # ignoring the check for infeasible jumps in joint space, which is sufficient
-        # for this tutorial.
-        (plan, fraction) = move_group.compute_cartesian_path(
-            waypoints, 0.01  # waypoints to follow  # eef_step
-        )
-
-        # Note: We are just planning, not asking move_group to actually move the robot yet:
-        return plan, fraction
-
-        ## END_SUB_TUTORIAL
-
-    def display_trajectory(self, plan):
-        
-        robot = self.robot
-        display_trajectory_publisher = self.display_trajectory_publisher
-
-        ## BEGIN_SUB_TUTORIAL display_trajectory
-        ##
-        ## Displaying a Trajectory
-        ## ^^^^^^^^^^^^^^^^^^^^^^^
-        ## You can ask RViz to visualize a plan (aka trajectory) for you. But the
-        ## group.plan() method does this automatically so this is not that useful
-        ## here (it just displays the same trajectory again):
-        ##
-        ## A `DisplayTrajectory`_ msg has two primary fields, trajectory_start and trajectory.
-        ## We populate the trajectory_start with our current robot state to copy over
-        ## any AttachedCollisionObjects and add our plan to the trajectory.
-        display_trajectory = moveit_msgs.msg.DisplayTrajectory()
-        display_trajectory.trajectory_start = robot.get_current_state()
-        display_trajectory.trajectory.append(plan)
-        # Publish
-        display_trajectory_publisher.publish(display_trajectory)
-
-        ## END_SUB_TUTORIAL
-
-    def execute_plan(self, plan):
-        # Copy class variables to local variables to make the web tutorials more clear.
-        # In practice, you should use the class variables directly unless you have a good
-        # reason not to.
-        move_group = self.move_group
-
-        ## BEGIN_SUB_TUTORIAL execute_plan
-        ##
-        ## Executing a Plan
-        ## ^^^^^^^^^^^^^^^^
-        ## Use execute if you would like the robot to follow
-        ## the plan that has already been computed:
-        move_group.execute(plan, wait=True)
-
-        ## **Note:** The robot's current joint state must be within some tolerance of the
-        ## first waypoint in the `RobotTrajectory`_ or ``execute()`` will fail
-        ## END_SUB_TUTORIAL
-
-    def wait_for_state_update(
-        self, box_is_known=False, box_is_attached=False, timeout=4
-    ):
-        # Copy class variables to local variables to make the web tutorials more clear.
-        # In practice, you should use the class variables directly unless you have a good
-        # reason not to.
-        box_name = self.box_name
-        scene = self.scene
-
-        ## BEGIN_SUB_TUTORIAL wait_for_scene_update
-        ##
-        ## Ensuring Collision Updates Are Received
-        ## ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        ## If the Python node was just created (https://github.com/ros/ros_comm/issues/176),
-        ## or dies before actually publishing the scene update message, the message
-        ## could get lost and the box will not appear. To ensure that the updates are
-        ## made, we wait until we see the changes reflected in the
-        ## ``get_attached_objects()`` and ``get_known_object_names()`` lists.
-        ## For the purpose of this tutorial, we call this function after adding,
-        ## removing, attaching or detaching an object in the planning scene. We then wait
-        ## until the updates have been made or ``timeout`` seconds have passed.
-        ## To avoid waiting for scene updates like this at all, initialize the
-        ## planning scene interface with  ``synchronous = True``.
-        start = rospy.get_time()
-        seconds = rospy.get_time()
-        while (seconds - start < timeout) and not rospy.is_shutdown():
-            # Test if the box is in attached objects
-            attached_objects = scene.get_attached_objects([box_name])
-            is_attached = len(attached_objects.keys()) > 0
-
-            # Test if the box is in the scene.
-            # Note that attaching the box will remove it from known_objects
-            is_known = box_name in scene.get_known_object_names()
-
-            # Test if we are in the expected state
-            if (box_is_attached == is_attached) and (box_is_known == is_known):
-                return True
-
-            # Sleep so that we give other threads time on the processor
-            rospy.sleep(0.1)
-            seconds = rospy.get_time()
-
-        # If we exited the while loop without returning then we timed out
-        return False
-        ## END_SUB_TUTORIAL
-
-    """
+    
     # Get the current ee-pose
     # Returns the position and orientation of the end-effector in a tuple
     def get_ee_pose(self):
         
-        pose = self.move_group.get_current_pose().pose
+        self.current_pose = self.move_group.get_current_pose().pose
         
         rospy.loginfo("End-Effector Position: x={}, y={}, z={}".format(pose.position.x, pose.position.y, pose.position.z))
         rospy.loginfo("End-Effector Orientation: x={}, y={}, z={}, w={}".format(pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w))
         
         return [pose.position.x, pose.position.y, pose.position.z], [pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w]
 
+    def display_current_pose(self):
+        pose = self.move_group.get_current_pose().pose
+        rospy.loginfo("End-Effector Position: x={}, y={}, z={}".format(pose.position.x, pose.position.y, pose.position.z))
+        rospy.loginfo("End-Effector Orientation: x={}, y={}, z={}, w={}".format(pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w))
+
     # Go to home position in joint space
     def go_home(self):
         joint_goal = self.joint_home
         self.move_group.go(joint_goal, wait=True)
         self.move_group.stop()
-
     
-
     # Create an  STAMPED ee-pose in R^3 from a tuple of position and orientation
     # Stamped pose contains: header (frame_id, stamp, seq) and pose (position, orientation)
-    def create_poseStamped(self, tuple_pos_ee):
+    def create_pose(self, tuple_pos_ee):
         pose = PoseStamped()
         pose.header.frame_id = '/panda_link0'
         pose.pose.position.x = tuple_pos_ee[0][0]
@@ -373,24 +251,43 @@ class FrankaDataCollection(object):
 
         return pose
 
+    # Map a PoseStamped object to a Pose object
+    def map_pose_stamped_to_pose(self, pose_stamped):
+        if isinstance(pose_stamped, PoseStamped):
+            # Return the Pose object contained within PoseStamped
+            return pose_stamped.pose
+        else:
+            rospy.logwarn("Input is not a PoseStamped object")
+            return None
     
-    # Plan a path to a given ee-pose
-    def go_to_pose_Cartesian(self, pose_target):
-        
-        # Check if the pose is a PoseStamped object: change into a tuple
-        if isinstance(pose_target, PoseStamped):
-            pose_goal = pose_target.pose
+    def log_position(self):
+        #Save the current joint state to a private member variable
+        self.grid_joint_state = self.group.get_current_joint_values() 
+        rospy.loginfo(f"Position logged: Joint state saved to grid_joint_state")
+    
+    def pose_callback(self, msg):
+        # This function is called whenever a new PoseStamped message is received
+        self.current_pose = msg
+        rospy.loginfo("Received Pose: %s", self.current_pose)
 
-        pose_goal = geometry_msgs.msg.Pose()       
+    def get_current_pose(self):
+        # Return the current PoseStamped object
+        return self.current_pose
+
+    # Plan a path to a given ee-pose in Cartesian space ---> 
+    # Input: PoseStamped object
+    def go_to_pose_Cartesian(self, pose_target):      
+
+        pose_goal = self.map_pose_stamped_to_pose(pose_target)
+
+        #pose_goal = geometry_msgs.msg.Pose() 
+      
         self.move_group.set_pose_target(pose_goal)
-        
         success = self.move_group.go(wait=True)
         if not success:
             rospy.loginfo("Failed to reach the goal pose")
-        #else:
-        #    rospy.loginfo("Goal pose reached")
         
-        self.move_group.stop() # Calling `stop()` ensures that there is no residual movement
+        self.move_group.stop()                                                     # Calling `stop()` ensures that there is no residual movement
         self.move_group.clear_pose_targets()
     
     # Go to A (reference) in joint space
@@ -399,13 +296,72 @@ class FrankaDataCollection(object):
         self.move_group.go(joint_goal, wait=True)
         self.move_group.stop()
 
-    # Go to B (end position) in joint space
-    def go_to_B(self, pose_B):
-        pose_goal = self.create_pose(self.pose_B)
-        plan = self.plan_path(pose_goal)
-        return plan
-    
+    # Go to B (end position) in Cartesian space
+    def go_to_B(self):     
+        self.go_to_pose_Cartesian(self.pose_B)
+        
+    # Go to next point along the path on y direction in Cartesian space
+    def go_to_next_point(self):
+        
+        # get the current ee-pose and visualize
+        self.current_pose = self.move_group.get_current_pose()
 
+        # cretaion of the next ee-pose in y direction only
+        next_pose = self.current_pose.pose.position.y + self.steplenght                            
+
+        # move the robot to the next ee-pose
+        self.go_to_pose_Cartesian(next_pose)
+
+        # update info about the current ee-pose
+        self.current_pose = self.move_group.get_current_pose()
+        self.display_current_pose()
+
+        return self.current_pose
+
+    def travel_AB(self):
+
+        rate = rospy.Rate(2)
+
+        # go to the reference point A in Cartesian space, considering the depth offset
+        self.go_to_pose_Cartesian(self.pose_A)
+        # pushing action
+        #self.n_pushingactions += 1
+
+        for i in range(self.n_samples-1):
+            
+            current_pose = self.go_to_next_point()      # go to the next point
+            self.move_group.stop()                      # Calling `stop()` ensures that there is no residual movement
+            rate.sleep()                                # Sleep for 0.5 seconds (1 / 2 Hz)
+            # pushing action
+            #self.n_pushingactions += 1
+
+        # go to the end point B
+        self.go_to_B(self.pose_B)
+        
+        #go home
+        self.go_home()
+  
+
+
+
+if __name__ == '__main__':
+    robot = FrankaDataCollection()
+    #robot = FrankaDataCollection(data_dir="/home/franka/dataset_collection/src/dataset")
+    try:
+        robot.go_home() # ---> joint space
+        robot.go_to_A() # ---> joint space
+        robot.go_to_pose_Cartesian(robot.pose_A) # ---> Cartesian space
+        robot.go_to_B() # ---> Cartesian space
+        robot.go_home() # ---> joint space
+
+        moveit_commander.roscpp_shutdown()
+    except rospy.ROSInterruptException:
+        pass
+
+        
+
+"""
+    # chek the type of the pose object
     def check_pose_type(self, pose):
         if isinstance(pose, PoseStamped):
             rospy.loginfo("The object is a PoseStamped object.")
@@ -415,19 +371,4 @@ class FrankaDataCollection(object):
             # Handle Pose-specific logic here
         else:
             rospy.logwarn("The object is neither a Pose nor PoseStamped.")
-
-
-if __name__ == '__main__':
-    robot = FrankaDataCollection()
-    
-    try:
-        pointA = robot.get_ee_pose()
-        robot.go_home()
-        home = robot.get_ee_pose()
-        robot.create_pose(home)
-        print(home)
-        moveit_commander.roscpp_shutdown()
-    except rospy.ROSInterruptException:
-        pass
-
-        
+"""
