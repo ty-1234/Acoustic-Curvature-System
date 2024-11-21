@@ -1,0 +1,9 @@
+# Constants for normal and shear force processing
+NORMAL_FORCE_FREQUENCIES = [100, 200, 300]
+SHEAR_FORCE_FREQUENCIES = [400, 500, 600]
+
+SAMPLE_RATE = 44100  # Hz
+WINDOW_SIZE = 1024
+STEP_SIZE = 512
+
+LOGGING_LEVEL = "INFO"
