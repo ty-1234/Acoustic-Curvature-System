@@ -2,6 +2,8 @@ import numpy as np
 from scipy.io import wavfile
 import matplotlib.pyplot as plt
 
+file_path = file_path = "C:/Users/giuli/Documents/Audacity/example_piano.aup3"
+
 def get_fft_from_wav(file_path):
     """
     Reads a .wav file, computes its FFT, and returns the frequency components and amplitudes.
