@@ -184,7 +184,7 @@ class FrankaDataCollection(object):
         self.rate =                         rospy.Rate(10)  # 10 Hz
 
         # Names and IDs of the available robot controllers.
-		self.CONTROLLER_NAME2ID = {
+        self.CONTROLLER_NAME2ID = {
 			"torque":               "franka_zero_torque_controller",
 			"position":             "position_joint_trajectory_controller",
 			"impedance":            "panda_leader_cartesian_impedance_controller",
@@ -193,14 +193,14 @@ class FrankaDataCollection(object):
 		}
 		
         # IDs and names of the available robot controllers.
-		self.CONTROLLERS_ID2NAME = {c_id: c_name for c_name, c_id in self.CONTROLLER_NAME2ID.items()}
+        self.CONTROLLERS_ID2NAME = {c_id: c_name for c_name, c_id in self.CONTROLLER_NAME2ID.items()}
 
 		# Get the name of the currently running robot controller.
-		running_controllers = self.get_controllers_id(filter_state="running")
-		if running_controllers:
-			self.current_controller = running_controllers[0]
-		else:
-			self.current_controller = None
+        running_controllers = self.get_controllers_id(filter_state="running")
+        if running_controllers:
+            self.current_controller = running_controllers[0]
+        else:
+            self.current_controller = None
         
         
     # Returns the position and orientation of the end-effector in a tuple
@@ -312,159 +312,157 @@ class FrankaDataCollection(object):
     
     # Go to A (reference) ---> joint space
     def go_to_A(self):
-        joint_goal = self.joint_A
-        self.move_group.go(joint_goal, wait=True)
-        self.move_group.stop()
+            joint_goal = self.joint_A
+            self.move_group.go(joint_goal, wait=True)
+            self.move_group.stop()
 
-    # Go to a pose goal ---> Cartesian space
+        # Go to a pose goal ---> Cartesian space
     def go_to_next_loc (self, pose_goal):            
-        self.go_to_cartesian_pose(pose_goal)
-        self.display_current_pose()
-        self.move_group.clear_pose_targets()
+            self.go_to_cartesian_pose(pose_goal)
+            self.display_current_pose()
+            self.move_group.clear_pose_targets()
 
-    # Go to the upper position (current x,y, position and orientation), but upper in z direction ----> World frame
+        # Go to the upper position (current x,y, position and orientation), but upper in z direction ----> World frame
     def go_up(self):
-        pose_goal = Pose ()                                     # create Pose Object 
-        pose_goal = self.move_group.get_current_pose().pose     # get current pose
-        pose_goal.pose.position.z =  self.pose_A_tuple[0][2]    # adjust pose on z direction as for A
-        
-        self.move_group.set_pose_target(pose_goal)              # Move upwards
-        success =               self.move_group.go(wait=True)   # Check if desired pose is achieved                    
-        if not success:                                                          
-            rospy.loginfo("Failed to reach the goal pose")
-        self.move_group.stop()
-        self.move_group.clear_pose_targets()
-        self.display_current_pose()                                             
+            
+            pose_goal = Pose ()                                     # create Pose Object 
+            pose_goal = self.move_group.get_current_pose().pose     # get current pose
+            pose_goal.pose.position.z =  self.pose_A_tuple[0][2]    # adjust pose on z direction as for A
+            
+            self.move_group.set_pose_target(pose_goal)              # Move upwards
+            success =               self.move_group.go(wait=True)   # Check if desired pose is achieved                    
+            if not success:                                                          
+                rospy.loginfo("Failed to reach the goal pose")
+            self.move_group.stop()
+            self.move_group.clear_pose_targets()
+            self.display_current_pose()                                             
 
-    # Defines a service-client request to retrieve the name of the controller
+        # Defines a service-client request to retrieve the name of the controller
     def get_controllers_id(self, filter_state=None):
-            """Get a list of the IDs of the avilable controllers.
+        """Get a list of the IDs of the avilable controllers.
 
-            Args:
-                filter_state (str, optional): If specified, only return controllers with matching state. Defaults to None.
+        Args:
+            filter_state (str, optional): If specified, only return controllers with matching state. Defaults to None.
 
-            Returns:
-                list[str]: List of the IDs of the controllers.
-            """
+        Returns:
+            list[str]: List of the IDs of the controllers.
+        """
 
-            rospy.wait_for_service("/controller_manager/list_controllers")
-            try:
-                request = ListControllersRequest()
-                service = rospy.ServiceProxy("/controller_manager/list_controllers", ListControllers)
-                response = service(request)
-            except Exception as e:
-                rospy.logerr("List controllers server is down. Unable to list running controllers.")
-                rospy.logerr(e)
-                return False
+        rospy.wait_for_service("/controller_manager/list_controllers")
+        try:
+            request = ListControllersRequest()
+            service = rospy.ServiceProxy("/controller_manager/list_controllers", ListControllers)
+            response = service(request)
+        except Exception as e:
+            rospy.logerr("List controllers server is down. Unable to list running controllers.")
+            rospy.logerr(e)
+            return False
 
-            if filter_state is None:
-                return [c.name for c in response.controller]
-            else:
-                return [c.name for c in response.controller if c.state == filter_state]
+        if filter_state is None:
+            return [c.name for c in response.controller]
+        else:
+            return [c.name for c in response.controller if c.state == filter_state]
 
     def enable_controller(self, controller_name):
         """Enable a certain controller for the robot.
-
-        Args:
-            controller_name (str): The name of the controller. Valid options are "torque" or "position".
-
-        Returns:
-            bool: Success.
+        Args:            controller_name (str): The name of the controller. Valid options are "torque" or "position".
+        Returns:         bool: Success.
         """
-		if self.current_controller == controller_name:
-			rospy.loginfo("Controller '{}' is already active.".format(self.current_controller))
-			return True
+        if self.current_controller == controller_name:
+            rospy.loginfo("Controller '{}' is already active.".format(self.current_controller))
+            return True
 
-		if controller_name not in self.CONTROLLER_NAME2ID.keys():
-			rospy.logerr("Controller '{}' is not a valid controller! Not switching.".format(controller_name))
-			return False
+        if controller_name not in self.CONTROLLER_NAME2ID.keys():
+            rospy.logerr("Controller '{}' is not a valid controller! Not switching.".format(controller_name))
+            return False
 
-		running_controllers_id = self.get_controllers_id("running")
-		# Limit to controllers specified in self.CONTROLLERS. This excludes the state controller, which should always be running.
-		running_controllers_id = [c_id for c_id in running_controllers_id if c_id in self.CONTROLLER_NAME2ID.values()]
+        running_controllers_id = self.get_controllers_id("running")
+        # Limit to controllers specified in self.CONTROLLERS. This excludes the state controller, which should always be running.
+        running_controllers_id = [c_id for c_id in running_controllers_id if c_id in self.CONTROLLER_NAME2ID.values()]
 
-		rospy.wait_for_service("/controller_manager/switch_controller")
-		try:
-			request = SwitchControllerRequest()
-			request.strictness = 1
-			# Stop all running controllers.
-			request.stop_controllers = running_controllers_id
-			# Start the required controller.
-			request.start_controllers = [self.CONTROLLER_NAME2ID[controller_name]]
-			service = rospy.ServiceProxy("/controller_manager/switch_controller", SwitchController)
-			response = service(request)
-		except Exception as e:
-			rospy.logerr("Switch controller server is down. Unable to switch contoller to '{}'".format(controller_name))
-			rospy.logerr(e)
-			return False
+        rospy.wait_for_service("/controller_manager/switch_controller")
+        try:
+            request = SwitchControllerRequest()
+            request.strictness = 1
+            # Stop all running controllers.
+            request.stop_controllers = running_controllers_id
+            # Start the required controller.
+            request.start_controllers = [self.CONTROLLER_NAME2ID[controller_name]]
+            service = rospy.ServiceProxy("/controller_manager/switch_controller", SwitchController)
+            response = service(request)
+        except Exception as e:
+            rospy.logerr("Switch controller server is down. Unable to switch contoller to '{}'".format(controller_name))
+            rospy.logerr(e)
+            return False
 
-		if not response.ok:
-			rospy.logerr("Failed to switch to controller '{}'".format(controller_name))
-			return False
+        if not response.ok:
+            rospy.logerr("Failed to switch to controller '{}'".format(controller_name))
+            return False
 
-		self.current_controller = controller_name
+        self.current_controller = controller_name
 
-    def start_pushing (self, ):
-    
+
+        
     # Node publisher for setting force
     def set_force_publisher(self, force_z):
-        rospy.init_node('force_publisher_node', anonymous=True)
-        pub = rospy.Publisher('/my_cartesian_force_controller/target_wrench', WrenchStamped, queue_size=10)
-        rate = self.rate  # Publish at 10 Hz
+            
+            rospy.init_node('force_publisher_node', anonymous=True)
+            pub = rospy.Publisher('/my_cartesian_force_controller/target_wrench', WrenchStamped, queue_size=10)
+            rate = self.rate  # Publish at 10 Hz
 
-        while not rospy.is_shutdown():
-            # Create and publish a message
-            msg = WrenchStamped()
-            msg.header.stamp = rospy.Time.now()
-            msg.header.frame_id = "base_link"
-            msg.wrench.force.x = 0.0
-            msg.wrench.force.y = 0.0
-            msg.wrench.force.z = force_z
-            msg.wrench.torque.x = 0.0
-            msg.wrench.torque.y = 0.0
-            msg.wrench.torque.z = 0.0
+            while not rospy.is_shutdown():
+                # Create and publish a message
+                msg = WrenchStamped()
+                msg.header.stamp = rospy.Time.now()
+                msg.header.frame_id = "base_link"
+                msg.wrench.force.x = 0.0
+                msg.wrench.force.y = 0.0
+                msg.wrench.force.z = force_z
+                msg.wrench.torque.x = 0.0
+                msg.wrench.torque.y = 0.0
+                msg.wrench.torque.z = 0.0
 
-            rospy.loginfo("Publishing target wrench: %s", msg)
-            pub.publish(msg)
-            rate.sleep()
+                rospy.loginfo("Publishing target wrench: %s", msg)
+                pub.publish(msg)
+                rate.sleep()
 
-    # Method for the subscribing node
+        # Method for the subscribing node
     def set_force_subscriber(self, duration):
-        rospy.init_node('force_subscriber_node', anonymous=True)                                                # Creation of the subscriber node
+            rospy.init_node('force_subscriber_node', anonymous=True)                                                # Creation of the subscriber node
 
-        # Callback function
-        def callback(data):
-            rospy.loginfo("Received message: %s", data)
-        
-        sub = rospy.Subscriber('/my_cartesian_force_controller/target_wrench', WrenchStamped, callback)         # Subscriber
-        start_time = rospy.Time.now()                                                                           # Track the start time
-        rospy.loginfo("Subscriber started. Listening for %d seconds...", duration)
+            # Callback function
+            def callback(data):
+                rospy.loginfo("Received message: %s", data)
+            
+            sub = rospy.Subscriber('/my_cartesian_force_controller/target_wrench', WrenchStamped, callback)         # Subscriber
+            start_time = rospy.Time.now()                                                                           # Track the start time
+            rospy.loginfo("Subscriber started. Listening for %d seconds...", duration)
 
-        while rospy.Time.now() - start_time < rospy.Duration(duration):                                         # Run for the specified duration
-            rospy.sleep(0.1)                                                                                    # Sleep briefly to allow messages to be processed
+            while rospy.Time.now() - start_time < rospy.Duration(duration):                                         # Run for the specified duration
+                rospy.sleep(0.1)                                                                                    # Sleep briefly to allow messages to be processed
 
-        rospy.loginfo("Time limit reached. Stopping subscriber.")
-        sub.unregister()                                                                                        # Stop the subscription
-   
+            rospy.loginfo("Time limit reached. Stopping subscriber.")
+            sub.unregister()                                                                                        # Stop the subscription
+    
+    def recover_force(self):
+            rospy.init_node('error_recovery_publisher')
+            pub = rospy.Publisher('/franka_control/error_recovery/goal', ErrorRecoveryActionGoal, queue_size=10)
+            recovery_goal = ErrorRecoveryActionGoal()
+            pub.publish(recovery_goal)
+            rospy.loginfo("Published recovery goal.")
 
-   def recover_force(self):
-        rospy.init_node('error_recovery_publisher')
-        pub = rospy.Publisher('/franka_control/error_recovery/goal', ErrorRecoveryActionGoal, queue_size=10)
-        recovery_goal = ErrorRecoveryActionGoal()
-        pub.publish(recovery_goal)
-        rospy.loginfo("Published recovery goal.")
-
-        
-        
-    # Plan travel for going from A to B using list of points
+            
+            
+        # Plan travel for going from A to B using list of points
+    
     def travel_AB(self):
-
+        
         for i in range(self.n_loc):
-
+            
             self.enable_controller("panda_leader_cartesian_impedance_controller")       # Check controller used is for MoveIt
             self.go_to_next_loc(pose_goal = self.pose_list[i])                          # Go to next loc point
             
-
+            """
             for j in range(self.n_pushing_actions):
                 
                 self.enable_controller("my_force_controller")                                               # Switch controller to cartesian force controller            
@@ -478,8 +476,9 @@ class FrankaDataCollection(object):
 
                 self.enable_controller("panda_leader_cartesian_impedance_controller")                       # Switch controller to cartesian motion
                 self.go_up()                                                                                # Go to upper position to start the next pushing action
+            """
+            
                                                                                 
-
 
 if __name__ == '__main__':
     robot = FrankaDataCollection()
