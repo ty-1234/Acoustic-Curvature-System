@@ -1,5 +1,6 @@
 import argparse
 
+
 def main():
     parser = argparse.ArgumentParser(description="Sensor Testing and Validation Framework")
     parser.add_argument("--task", type=str, choices=["calibration", "vibration", "real_time", "data_collection", "nn_test"], required=True, help="Select the task to run")
