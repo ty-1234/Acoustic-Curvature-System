@@ -1,153 +1,169 @@
+#!/usr/bin/env python3
 import rospy
-import csv
 import numpy as np
 import pandas as pd
 import sounddevice as sd
-
 from std_msgs.msg import Float64MultiArray
 from geometry_msgs.msg import PoseStamped, WrenchStamped
-from threading import Lock
 
+# ==========================
+# Helper Methods
+# ==========================
 
+def get_forces_from_wrench(wrench_msg):
+    """
+    Extracts the end-effector forces along x, y, z axes from a WrenchStamped message.
+    """
+    fx = wrench_msg.wrench.force.x
+    fy = wrench_msg.wrench.force.y
+    fz = wrench_msg.wrench.force.z
+    return fx, fy, fz
 
-class DataCollectorNode:
-    def __init__(self):
-        rospy.init_node("data_collector_node", anonymous=True)
+def get_position_from_pose(pose_msg):
+    """
+    Extracts the end-effector position along x, y, z axes from a PoseStamped message.
+    """
+    x = pose_msg.pose.position.x
+    y = pose_msg.pose.position.y
+    z = pose_msg.pose.position.z
+    return x, y, z
 
-        # File setup
-        self.csv_file = "robot_data.csv"
-        self.lock = Lock()
-        self._initialize_csv()
+# def get_torque_from_wrench(wrench_msg):
+#     """
+#     Extracts the end-effector torque along x, y, z axes from a WrenchStamped message.
+#     """
+#     tx = wrench_msg.wrench.torque.x
+#     ty = wrench_msg.wrench.torque.y
+#     tz = wrench_msg.wrench.torque.z
+#     return tx, ty, tz
 
-        # Publisher for the FFT results
-        self.fft_pub = rospy.Publisher('/fft_results', Float64MultiArray, queue_size=10)
+# ==========================
+# Global Variables
+# ==========================
+latest_pose = None
+latest_wrench = None
 
-        # Subscriptions
-        self.pose_sub = rospy.Subscriber("/robot_pose", PoseStamped, self.pose_callback)
-        self.wrench_sub = rospy.Subscriber("/end_effector_wrench", WrenchStamped, self.wrench_callback)
+def pose_callback(msg):
+    global latest_pose
+    latest_pose = msg
 
-        # Data storage
-        self.latest_pose = None
-        self.latest_wrench = None
+def wrench_callback(msg):
+    global latest_wrench
+    latest_wrench = msg
 
-        self.Fs = 22050  # Reduced sample rate
-        self.L = 10000  # Window length
-        self.step_size = 1000  # Increased step size for overlapping windows
-
-        # Empty list to store the results
-        results = []
-
-        def recording_loop ():
-            # Record the start time
-            start_time = pd.Timestamp.now()
-            while (pd.Timestamp.now() - start_time).total_seconds() < 50:
-                audio_data = sd.rec(self.L, samplerate = self.Fs, channels = 1, blocking = True)
-                audio_data = audio_data.flatten()  # Flatten the audio data to a 1D array
-
-                # Perform overlapping FFT
-                start_idx = 0
-                end_idx = L
-                while end_idx <= len(audio_data):
-                    window_data = audio_data[start_idx:end_idx]
-
-                    # Perform FFT on the windowed data
-                    Fn = Fs / 2
-                    FTy = np.fft.fft(window_data, L) / L
-                    Fv = np.linspace(0, 1, int(L / 2) + 1) * Fn
-                    x = np.abs(FTy[:int(L / 2) + 1]) * 2
-
-                    M = np.column_stack((Fv, x))
-
-                    # Extract the FFT values at specific frequencies
-                    target_frequencies = [200, 400, 600, 800]
-                    FFT_values = np.zeros(len(target_frequencies))
-
-                    for i, target_frequency in enumerate(target_frequencies):
-                        index = np.argmin(np.abs(M[:, 0] - target_frequency))
-                        FFT_values[i] = M[index, 1]
-
-                    FFT200, FFT400, FFT600, FFT800 = FFT_values
-
-                    # Display the FFT values
-                    print(f"FFT200: {FFT200}")
-                    print(f"FFT400: {FFT400}")
-                    print(f"FFT600: {FFT600}")
-                    print(f"FFT800: {FFT800}")
-
-                    # Create a new row of results for the current iteration
-                    current_time = pd.Timestamp.now()
-                    new_row = [FFT200, FFT400, FFT600, FFT800, current_time]
-                    results.append(new_row)
-
-                    # Publish the results via ROS
-                    self.fft_msg = Float64MultiArray(data=[ FFT200, FFT400, FFT600, FFT800, current_time.timestamp()])
-                    self.fft_pub.publish(self.fft_msg)
-
-                    # Move to the next window
-                    start_idx += self.step_size
-                    end_idx += self.step_size
-
-            # Convert the list of results to a DataFrame
-            results_df = pd.DataFrame(results, columns=['Force', 'FFT200', 'FFT400', 'FFT600', 'FFT800', 'Time'])
-
-            # Write the results DataFrame to a CSV file
-            # Using mode='a' to append if the file already exists; if you want to overwrite, use mode='w'
-            results_df.to_csv('C.csv', mode='a', index=False)
-
-    def _initialize_csv(self):
-        """Initialize the CSV file with headers."""
-        with open(self.csv_file, "w", newline="") as file:
-            writer = csv.writer(file)
-            writer.writerow(["Time", "X", "Y", "Z", \
-                             "FFT200", "FFT400", "FFT600", "FFT800",\
-                             "F_x", "F_y", "F_z",\
-                             "Tor_x", "Tor_y", "Tor_z" ])
-
-    def pose_callback(self, msg):
-        """Callback for PoseStamped messages."""
-        self.lock.acquire()
-        try:
-            self.latest_pose = msg
-            self._write_to_csv()
-        finally:
-            self.lock.release()
-
-    def wrench_callback(self, msg):
-        """Callback for WrenchStamped messages."""
-        self.lock.acquire()
-        try:
-            self.latest_wrench = msg
-            self._write_to_csv()
-        finally:
-            self.lock.release()
-
-    def _write_to_csv(self):
-        """Write the latest data to the CSV file."""
-        if self.latest_pose and self.latest_wrench:
-            time_stamp = rospy.Time.now().to_sec()
-            position = self.latest_pose.pose.position
-            force = self.latest_wrench.wrench.force
-            torque = self.latest_wrench.wrench.torque
-
-            with open(self.csv_file, "a", newline="") as file:
-                writer = csv.writer(file)
-                writer.writerow([
-                    time_stamp,
-                    position.x, position.y, position.z,
-                    force.x, force.y, force.z,
-                    torque.x, torque.y, torque.z
-                ])
+# ==========================
+# Main Code
+# ==========================
 
 if __name__ == "__main__":
-    try:
-        collector = DataCollectorNode()
-        rospy.spin()
-    except rospy.ROSInterruptException:
-        rospy.loginfo("Data collection node terminated.")
+    # Initialize ROS node
+    rospy.init_node('fft_publisher', anonymous=True)
 
+    # Subscribers
+    pose_sub = rospy.Subscriber('/robot_pose', PoseStamped, pose_callback)
+    wrench_sub = rospy.Subscriber('/end_effector_wrench', WrenchStamped, wrench_callback)
 
+    # Publisher for the FFT results
+    fft_pub = rospy.Publisher('/fft_results', Float64MultiArray, queue_size=10)
 
+    Fs = 22050  # Reduced sample rate
+    L = 10000   # Window length
+    step_size = 1000  # Increased step size for overlapping windows
 
+    # Empty list to store the results
+    results = []
 
+    # Record the start time
+    start_time = pd.Timestamp.now()
 
+    # We will record for approximately 50 seconds
+    rate = rospy.Rate(10)  # 10 Hz loop
+    while (pd.Timestamp.now() - start_time).total_seconds() < 50 and not rospy.is_shutdown():
+        # Ensure we have the latest data
+        if latest_pose is None or latest_wrench is None:
+            rospy.logwarn("Waiting for pose and wrench messages...")
+            rate.sleep()
+            continue
 
+        # Record audio data
+        audio_data = sd.rec(L, samplerate=Fs, channels=1, blocking=True)
+        audio_data = audio_data.flatten()  # Flatten the audio data to a 1D array
+
+        # Perform overlapping FFT
+        start_idx = 0
+        end_idx = L
+        while end_idx <= len(audio_data):
+            window_data = audio_data[start_idx:end_idx]
+
+            # Perform FFT on the windowed data
+            Fn = Fs / 2
+            FTy = np.fft.fft(window_data, L) / L
+            Fv = np.linspace(0, 1, int(L / 2) + 1) * Fn
+            x = np.abs(FTy[:int(L / 2) + 1]) * 2
+
+            M = np.column_stack((Fv, x))
+
+            # Extract the FFT values at specific frequencies
+            target_frequencies = [200, 400, 600, 800]
+            FFT_values = np.zeros(len(target_frequencies))
+
+            for i, target_frequency in enumerate(target_frequencies):
+                index = np.argmin(np.abs(M[:, 0] - target_frequency))
+                FFT_values[i] = M[index, 1]
+
+            FFT200, FFT400, FFT600, FFT800 = FFT_values
+
+            # Display the FFT values
+            print(f"FFT200: {FFT200}")
+            print(f"FFT400: {FFT400}")
+            print(f"FFT600: {FFT600}")
+            print(f"FFT800: {FFT800}")
+
+            # Get forces, position, torque
+            fx, fy, fz = get_forces_from_wrench(latest_wrench)
+            tx, ty, tz = get_torque_from_wrench(latest_wrench)
+            x_pos, y_pos, z_pos = get_position_from_pose(latest_pose)
+
+            # Current time
+            current_time = pd.Timestamp.now()
+
+            # Create a new row of results for the current iteration
+            new_row = [
+                FFT200, FFT400, FFT600, FFT800,
+                x_pos, y_pos, z_pos,
+                fx, fy, fz,
+                tx, ty, tz,
+                current_time
+            ]
+            results.append(new_row)
+
+            # Publish the results via ROS
+            fft_msg = Float64MultiArray(data=[
+                FFT200, FFT400, FFT600, FFT800,
+                x_pos, y_pos, z_pos,
+                fx, fy, fz,
+                tx, ty, tz,
+                current_time.timestamp()
+            ])
+            fft_pub.publish(fft_msg)
+
+            # Move to the next window
+            start_idx += step_size
+            end_idx += step_size
+
+        rate.sleep()
+
+    # Convert the list of results to a DataFrame
+    columns = [
+        'FFT200', 'FFT400', 'FFT600', 'FFT800',
+        'PosX', 'PosY', 'PosZ',
+        'ForceX', 'ForceY', 'ForceZ',
+        'TorqueX', 'TorqueY', 'TorqueZ',
+        'Time'
+    ]
+    results_df = pd.DataFrame(results, columns=columns)
+
+    # Write the results DataFrame to a CSV file
+    results_df.to_csv('C.csv', mode='a', index=False)
+
+    rospy.loginfo("Data collection complete. Results saved to C.csv")
