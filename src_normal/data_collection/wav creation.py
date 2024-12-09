@@ -9,11 +9,10 @@ def generate_multi_tone(frequencies, duration, sample_rate=44100):
         signal += 0.25 * np.sin(2 * np.pi * freq * t)  # Reduce amplitude to avoid clipping
     return signal
 
-# Get user input for duration
+# Get user input for duration and frequencies
 duration = float(input("Enter the duration of the sound wave (seconds): "))
-
-# Define frequencies to include in the wave
-frequencies = [200, 400, 600, 800]
+frequencies_input = input("Enter the frequencies (Hz) separated by commas (e.g., 200,400,600): ")
+frequencies = [float(freq.strip()) for freq in frequencies_input.split(',')]
 
 # Generate the multi-tone wave
 sample_rate = 44100
@@ -23,7 +22,7 @@ multi_tone_signal = generate_multi_tone(frequencies, duration, sample_rate)
 multi_tone_signal = (multi_tone_signal / np.max(np.abs(multi_tone_signal)) * 32767).astype(np.int16)
 
 # Save the signal to a .wav file
-output_filename = f"multi_tone_{duration}s.wav"
+output_filename = f"wav_{duration}s.wav"
 wav.write(output_filename, sample_rate, multi_tone_signal)
 
-print(f"Multi-tone sound wave saved as {output_filename}")
+print(f"Sound wave saved as {output_filename}")
