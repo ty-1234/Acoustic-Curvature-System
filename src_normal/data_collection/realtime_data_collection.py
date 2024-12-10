@@ -167,3 +167,7 @@ if __name__ == "__main__":
     results_df.to_csv('C.csv', mode='a', index=False)
 
     rospy.loginfo("Data collection complete. Results saved to C.csv")
+
+    # TODO: Once the recording for a specific location at a specific depth, the code asks the user
+    # to specificy which location and which depth has to be addressed for the data recordeded
+    # E.g. location C at depth 3
