@@ -1,9 +1,13 @@
 import argparse
+import sys
 import os
-from scripts import (
-    curvature_data_processor,   # Handles normalization of FFT data
-    curvature_ros               # Handles audio recording + FFT + ROS label logging
-)
+
+# Add the scripts directory to the Python path
+scripts_dir = os.path.join(os.path.dirname(__file__), "scripts")
+sys.path.append(scripts_dir)
+
+from curvature_data_processor import process_curvature_data  # Import after updating the path
+from curvature_ros import main as curvature_ros_main
 
 # ========== TASKS ==========
 
@@ -14,7 +18,7 @@ def generate_wav():
 
 # 🎙️ Task: Record FFT data for all sections using a known curvature object
 def collect_data():
-    curvature_ros.main()  # Your curvature_ros.py must have a main() method
+    curvature_ros_main()  # Your curvature_ros.py must have a main() method
 
 # 🧹 Task: Preprocess all raw files in batch, normalize FFT features, save to preprocessed/
 def preprocess_data():
@@ -33,7 +37,7 @@ def preprocess_data():
         curvature_val = float(curvature_str.replace("_", "."))
 
         print(f"🔄 Processing: {filename} (curvature: {curvature_val})")
-        curvature_data_processor.process_curvature_data(curvature_value=curvature_val)
+        process_curvature_data(curvature_value=curvature_val)
 
 # ========= FUTURE TASKS =========
 
@@ -45,7 +49,7 @@ def train_model():
 def visualize():
     print("📊 Visualization not implemented yet.")
 
-# ========== MAIN ENTRY POINT ==========.
+# ========== MAIN ENTRY POINT ==========
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Curvature Sensor Control Panel")
