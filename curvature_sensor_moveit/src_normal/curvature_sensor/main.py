@@ -4,7 +4,6 @@ from scripts import (
     curvature_data_processor,   # Handles normalization of FFT data
     curvature_ros               # Handles audio recording + FFT + ROS label logging
 )
-https://prod.liveshare.vsengsaas.visualstudio.com/join?258E5B567EA39DE199660E9B2A1F43DBC93A
 # ========== TASKS ==========
 
 # 🎵 Task: Generate test signal (200–2000 Hz tones)

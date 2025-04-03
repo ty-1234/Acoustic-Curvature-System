@@ -618,19 +618,13 @@ class FrankaDataCollection(object):
             # Clear pose targets after moving
             self.move_group.clear_pose_targets()
  
-if __name__ == '__main__':
+def main():
     robot = FrankaDataCollection()
-    #robot = FrankaDataCollection(data_dir="/home/franka/dataset_collection/src/dataset")
-  
-    # try:
     robot.open_gripper()
-    for _ in range(1): 
-     
-        robot.go_to_A()
-        robot.move_Downwards()
-        robot.open_gripper()
-        
-            
-           
-    # except rospy.ROSInterruptException:
-    #     pass
+    robot.go_to_A()
+    robot.move_Downwards()
+    robot.open_gripper()
+
+
+if __name__ == "__main__":
+    main()
