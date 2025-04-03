@@ -1,0 +1,14 @@
+numpy
+scipy
+pandas
+scikit-learn
+matplotlib
+rospy
+pyaudio
+tf
+geometry_msgs
+sensor_msgs
+std_msgs
+moveit_commander
+controller_manager_msgs
+actionlib_msgs
