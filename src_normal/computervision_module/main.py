@@ -55,8 +55,8 @@ def main():
 
     # Define camera parameters TODO: Update these values based on your camera setup in franka Lab
     camera_height_m = 1.5  # Camera height from the table in meters
-    focal_length_mm = 35.0  # Camera focal length in mm
-    sensor_width_mm = 36.0  # Camera sensor width in mm
+    focal_length_mm = 1.93  # Camera focal length in mm
+    sensor_width_mm = 3.6  # Camera sensor width in mm
 
     # Extract the image name (without extension) for saving results
     image_name_no_ext = os.path.splitext(image_name)[0]
