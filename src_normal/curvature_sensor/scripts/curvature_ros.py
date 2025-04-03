@@ -33,7 +33,7 @@ import moveit_commander
 import subprocess
 import numpy as np
 import pandas as pd
-import realtime_data_collection
+
 import tf 
 from matplotlib.pyplot import imsave
 from math import pi, dist, fabs, cos
