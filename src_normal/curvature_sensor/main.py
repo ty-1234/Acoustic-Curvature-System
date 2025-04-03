@@ -45,7 +45,7 @@ def train_model():
 def visualize():
     print("📊 Visualization not implemented yet.")
 
-# ========== MAIN ENTRY POINT ==========
+# ========== MAIN ENTRY POINT ==========.
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Curvature Sensor Control Panel")
