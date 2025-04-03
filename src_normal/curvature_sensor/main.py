@@ -2,7 +2,7 @@ import argparse
 import os
 from scripts import (
     curvature_data_processor,   # Handles normalization of FFT data
-    curvature_data_collector,  # Handles audio recording + FFT + raw CSV creation
+    curvature_ros               # Handles audio recording + FFT + ROS label logging
 )
 
 # ========== TASKS ==========
@@ -14,12 +14,10 @@ def generate_wav():
 
 # 🎙️ Task: Record FFT data for all sections using a known curvature object
 def collect_data():
-    from scripts import curvature_data_collector as collector
-    collector.main()  # Your curvature_data_collector.py must have a main() method
+    curvature_ros.main()  # Your curvature_ros.py must have a main() method
 
 # 🧹 Task: Preprocess all raw files in batch, normalize FFT features, save to preprocessed/
 def preprocess_data():
-    from scripts import curvature_data_processor as processor
     raw_dir = "csv_data/raw"
 
     # Get all files that start with raw_ and end with .csv
@@ -35,18 +33,16 @@ def preprocess_data():
         curvature_val = float(curvature_str.replace("_", "."))
 
         print(f"🔄 Processing: {filename} (curvature: {curvature_val})")
-        processor.process_curvature_data(curvature_value=curvature_val)
+        curvature_data_processor.process_curvature_data(curvature_value=curvature_val)
 
 # ========= FUTURE TASKS =========
 
 # 🔧 Task: Train your regression model (GPR or other)
 def train_model():
-    # TODO: Implement model training pipeline using preprocessed data
     print("🧠 Model training not implemented yet.")
 
 # 📈 Task: Visualize model predictions vs ground truth
 def visualize():
-    # TODO: Implement plotting logic for model output and curvature profiles
     print("📊 Visualization not implemented yet.")
 
 # ========== MAIN ENTRY POINT ==========
@@ -64,7 +60,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # Run the selected task
     if args.task == "generate_wav":
         generate_wav()
     elif args.task == "collect_data":
@@ -72,6 +67,6 @@ if __name__ == "__main__":
     elif args.task == "preprocess":
         preprocess_data()
     elif args.task == "train":
-        train_model()  # Placeholder for future model training
+        train_model()
     elif args.task == "visualize":
-        visualize()    # Placeholder for future visualization
+        visualize()
