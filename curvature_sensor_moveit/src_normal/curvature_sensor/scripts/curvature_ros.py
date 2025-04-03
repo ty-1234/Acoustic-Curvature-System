@@ -611,7 +611,7 @@ class FrankaDataCollection(object):
             rospy.sleep(10)  # Sleep for 10 seconds again after closing
 
             if success:
-                rospy.loginfo("Gripper successfully closed. Playing audio.")
+                rospy.loginfo("Gripper successfully closed.")
             else:
                 rospy.loginfo("Failed to move the robot horizontally backwards")
 
