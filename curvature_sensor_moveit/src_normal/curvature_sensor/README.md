@@ -12,3 +12,8 @@ python main.py --task train
 
 # Visualize curvature estimates (soon)
 python main.py --task visualize
+
+
+
+
+
