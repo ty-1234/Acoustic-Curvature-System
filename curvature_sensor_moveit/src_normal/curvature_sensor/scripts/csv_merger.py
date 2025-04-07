@@ -20,8 +20,8 @@ def merge_csvs(curvature_value):
     curvature_str = str(curvature_value).replace(".", "_")
     
     # File paths for the input and output CSV files
-    raw_audio_path = f"csv_data/raw/raw_{curvature_str}.csv"  # Path to the audio CSV file
-    raw_robot_path = f"csv_data/raw/raw_robot_{curvature_str}.csv"  # Path to the robot CSV file
+    raw_audio_path = f"/home/franka/franka_ws/src/ASS_245/curvature_sensor_moveit/src_normal/curvature_sensor/csv_data/raw/raw_audio_{curvature_str}.csv"  # Path to the audio CSV file
+    raw_robot_path = f"/home/franka/franka_ws/src/ASS_245/curvature_sensor_moveit/src_normal/curvature_sensor/csv_data/raw/raw_robot_{curvature_str}.csv"  # Path to the robot CSV file
     merged_output_path = f"csv_data/merged/merged_{curvature_str}.csv"  # Path to save the merged CSV file
 
     # Check if the audio CSV file exists
