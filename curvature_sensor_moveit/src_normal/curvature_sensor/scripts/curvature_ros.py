@@ -50,6 +50,7 @@ from tf.transformations import euler_from_quaternion, quaternion_from_euler
 from moveit_commander.conversions import pose_to_list
 from pathlib import Path
 from geometry_msgs.msg import WrenchStamped
+import csv  # Add CSV module for writing data
 
 
 from sensor_msgs.msg import JointState
@@ -572,6 +573,16 @@ class FrankaDataCollection(object):
             
                                                                               
     def move_Downwards(self):
+        # Ask the user for the known curvature value
+        curvature_value = float(input("Enter known curvature value (e.g., 0.01818): "))
+        curvature_str = str(curvature_value).replace(".", "_")
+        output_dir = os.path.join(os.path.dirname(__file__), "../csv_data/raw")
+        output_filename = f"raw_robot_{curvature_str}.csv"
+        output_path = os.path.join(output_dir, output_filename)
+
+        # Prepare a list to store data rows
+        data_rows = []
+
         section_labels = ["0cm", "1cm", "2cm", "3cm", "4cm", "5cm"]
         for i, label in enumerate(section_labels):
             self.section_pub.publish(label)  # Publish the section label
@@ -617,6 +628,20 @@ class FrankaDataCollection(object):
 
             # Clear pose targets after moving
             self.move_group.clear_pose_targets()
+
+            # Record data for this section
+            timestamp = rospy.Time.now().to_sec()
+            iso_timestamp = datetime.datetime.fromtimestamp(timestamp).isoformat()
+            data_rows.append([label, new_x, new_y, new_z, iso_timestamp])
+
+        # Save all rows to the CSV file
+        os.makedirs(output_dir, exist_ok=True)
+        with open(output_path, mode='w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(['Section', 'PosX', 'PosY', 'PosZ', 'Timestamp'])  # Write header
+            writer.writerows(data_rows)  # Write data rows
+
+        rospy.loginfo(f"✅ Data saved to {output_path}")
  
 def main():
     robot = FrankaDataCollection()
