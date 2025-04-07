@@ -174,7 +174,7 @@ class FrankaDataCollection(object):
         self.pose_home = ([0.4223942641978751, -0.04042834717301551, 0.6434531923890092], [-0.9988081975410994, 0.039553416742988796, -0.027085673649872546, 0.009169407373883585])
         self.joint_middle = [-1.0863472633110847, 1.0869070429590033, 2.109136418413529, -2.216250412393391, 0.3391740601878158, 2.8352848181560386, -0.3562797731873062]
        
-        self.joint_A_position = [-0.8189981348389074, 1.0220550865703468, 2.0084713084933314, -2.0076807282765707, 0.2076807713457959, 2.9265485531716706, -0.31997714705434105]
+        self.joint_A_position = [-0.7970082529189327, 1.1346361602147421, 1.9995906521457534, -2.0573368821106364, -0.007957306435538661, 3.0074123239190973, -0.34559942566877566]
         # Names and IDs of the available robot controllers.
         self.CONTROLLER_NAME2ID = {
 			"torque":               "franka_zero_torque_control[-0.7809745708194721, 1.1661021832040674, 1.9708445979462788, -2.0634305065221947, -0.5160919516219034, 3.047398131163245, 0.38560656003985133, 0.035884205251932144, 0.035884205251932144]ler",
@@ -572,7 +572,7 @@ class FrankaDataCollection(object):
             
                                                                               
     def move_Downwards(self):
-        section_labels = ["0cm", "1cm", "2cm", "3cm", "4cm", "5cm", "6cm"]
+        section_labels = ["0cm", "1cm", "2cm", "3cm", "4cm", "5cm"]
         for i, label in enumerate(section_labels):
             self.section_pub.publish(label)  # Publish the section label
             rospy.loginfo(f"📤 Published section label: {label}")
