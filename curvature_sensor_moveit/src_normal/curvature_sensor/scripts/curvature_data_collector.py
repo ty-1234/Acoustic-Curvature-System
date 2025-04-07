@@ -12,8 +12,9 @@ from curvature_fft_utils import extract_fft_features
 
 
 def main():
-    # ===== User Input for Curvature Value =====
-    curvature_value = float(input("Enter the curvature value of your test object (in mm⁻¹): "))
+    # ===== User Input for Radius =====
+    radius_value = float(input("Enter the radius of curvature of your test object (in mm): "))
+    curvature_value = 1 / radius_value  # Convert radius to curvature
     curvature_str = str(curvature_value).replace(".", "_")
 
     # Updated directory to be relative to the script's location
@@ -21,7 +22,8 @@ def main():
     output_filename = f"raw_audio_{curvature_str}.csv"
     output_path = os.path.join(output_dir, output_filename)
 
-    print(f"\n📐 Curvature: {curvature_value} mm⁻¹")
+    print(f"\n📐 Radius: {radius_value} mm")
+    print(f"📐 Curvature: {curvature_value} mm⁻¹")
     print(f"💾 Output path: {output_path}\n")
 
     # ===== Audio Setup =====
