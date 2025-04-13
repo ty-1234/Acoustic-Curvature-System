@@ -16,13 +16,16 @@ def merge_csvs(curvature_value):
     5. Saves the merged DataFrame to a new CSV file in the 'csv_data/merged' directory.
     """
 
+    # Get the base directory of the current script (curvature_sensor module root)
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
     # Convert the curvature value to a string and replace the decimal point with an underscore
     curvature_str = str(curvature_value).replace(".", "_")
     
     # File paths for the input and output CSV files
-    raw_audio_path = f"/home/franka/franka_ws/src/ASS_245/curvature_sensor_moveit/src_normal/curvature_sensor/csv_data/raw/raw_audio_{curvature_str}.csv"  # Path to the audio CSV file
-    raw_robot_path = f"/home/franka/franka_ws/src/ASS_245/curvature_sensor_moveit/src_normal/curvature_sensor/csv_data/raw/raw_robot_{curvature_str}.csv"  # Path to the robot CSV file
-    merged_output_path = f"csv_data/merged/merged_{curvature_str}.csv"  # Path to save the merged CSV file
+    raw_audio_path = os.path.join(base_dir, "csv_data", "raw", f"raw_audio_{curvature_str}.csv")
+    raw_robot_path = os.path.join(base_dir, "csv_data", "raw", f"raw_robot_{curvature_str}.csv")
+    merged_output_path = os.path.join(base_dir, "csv_data", "merged", f"merged_{curvature_str}.csv")
 
     # Check if the audio CSV file exists
     if not os.path.exists(raw_audio_path):
@@ -59,7 +62,7 @@ def merge_csvs(curvature_value):
     )
 
     # Ensure the 'csv_data/merged' directory exists before saving the merged file
-    os.makedirs("csv_data/merged", exist_ok=True)
+    os.makedirs(os.path.dirname(merged_output_path), exist_ok=True)
 
     # Save the merged DataFrame to the specified output path
     merged_df.to_csv(merged_output_path, index=False)
