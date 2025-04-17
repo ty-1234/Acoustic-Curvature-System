@@ -1,3 +1,14 @@
+"""
+Curvature Sensing System Controller.
+
+This script serves as the main entry point for the Curvature Sensing System, providing a
+menu-driven interface to access various functions of the system. It dynamically loads
+modules as needed to optimize memory usage.
+
+Author: Bipindra Rai
+Date: 2025-04-17
+"""
+
 import os
 import sys
 import importlib
@@ -11,7 +22,19 @@ if scripts_dir not in sys.path:
 def main():
     """
     Main function for the Curvature Sensing Pipeline Control Hub.
-    Provides a menu-based interface for selecting and executing various tasks.
+    
+    Provides a menu-based interface for selecting and executing various tasks related to
+    the curvature sensing system, including:
+    - Wave file generation for acoustic excitation
+    - Data collection from the acoustic sensor
+    - Robot control via ROS
+    - Data processing and merging
+    - Visualization of results
+    
+    Returns
+    -------
+    None
+        This function handles execution but does not return any values
     """
 
     # Display the menu options to the user
@@ -22,7 +45,7 @@ def main():
     print("3. ROS Control (curvature_ros.py)")
     print("4. Merge CSV Files (csv_merger.py)")
     print("5. Preprocess Data (curvature_data_processor.py)")
-    print("6. Visualize FFT Data (fft_visualizer.py)")  # UNKNOWN IF USEFUL
+    print("6. Visualize FFT Data (fft_visualizer.py)")
 
     try:
         # Prompt the user to select a task
@@ -125,6 +148,7 @@ def main():
 
             # Process each raw file
             for filename in files:
+                # Extract curvature value from filename by handling the underscore conversion
                 curvature_str = filename.replace("raw_", "").replace(".csv", "")
                 curvature_val = float(curvature_str.replace("_", "."))
                 print(f"🔄 Processing: {filename} (curvature: {curvature_val})")

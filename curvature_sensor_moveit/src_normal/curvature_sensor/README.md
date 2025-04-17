@@ -151,7 +151,11 @@ python scripts/curvature_data_collector.py <curvature_value>
 
 **File:** [`scripts/curvature_ros.py`](scripts/curvature_ros.py)
 
-Controls the robot arm using ROS to perform systematic movements and record positional data.
+Controls the robot arm using ROS to perform systematic movements and record positional data. Implements several controller types for the Franka Emika robot:
+
+- **Cartesian Impedance Control**: Used for precise movement between locations
+- **Force Control**: Manages pressing force during surface interaction
+- **Error Recovery**: Handles recovery from force-related errors
 
 **Usage:**
 ```bash
@@ -188,7 +192,7 @@ Utility functions for FFT processing used by other scripts.
 
 **Usage:**
 ```python
-from scripts.curvature_fft_utils import calculate_fft, extract_frequency_amplitudes
+from scripts/curvature_fft_utils import calculate_fft, extract_frequency_amplitudes
 ```
 
 ### fft_visualizer
