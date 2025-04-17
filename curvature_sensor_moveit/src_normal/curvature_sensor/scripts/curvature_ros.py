@@ -1,14 +1,22 @@
 #!/home/franka/miniconda3/envs/tariq/bin/python
 
 """
-Module Name: Data Collection for Cablibration
-Author: Giuliano Gemmani
-Email: giulianogemmani@gmail.com
-Date: YYYY-MM-DD
+Module Name: Data Collection for Calibration
+Authors: Tariq [for ROS framework], Bipindra Rai [for data collection and sensor integration]
+Date: 2025-04-17
 
 Description:
-    A brief summary of the module’s purpose and functionality.
+    A module designed for data collection and calibration of a curvature sensor using a Franka robot.
+    The system provides functionalities for precise robot movement control, section-based data 
+    collection, and synchronized sensor data logging. This implementation uses ROS and MoveIt
+    for robot control with a specialized data collection framework for curvature sensor calibration.
 
+Features:
+    - Systematic robot movement through predefined sections (0-5cm)
+    - Gripper control for sensor manipulation
+    - CSV-based data logging with synchronized timestamps
+    - Section publishing for external sensor synchronization
+    - Position and orientation tracking for pose reconstruction
 """
 
 from __future__ import print_function
@@ -321,6 +329,24 @@ class FrankaDataCollection(object):
 
     # Create an ee-pose object in R^3 specifying a  tuple of position and orientation previoulsy recorded
     def create_pose(self, tuple_pos_ee):
+        """
+        Create a Pose object from a tuple of position and orientation.
+        
+        This method creates a ROS PoseStamped message from a tuple containing position and
+        orientation values. It also logs the resulting pose information.
+        
+        Parameters
+        ----------
+        tuple_pos_ee : tuple
+            A tuple with two elements:
+            - First element: List [x, y, z] representing position coordinates
+            - Second element: List [x, y, z, w] representing quaternion orientation
+            
+        Returns
+        -------
+        geometry_msgs.msg.PoseStamped
+            A ROS PoseStamped object with the specified position and orientation
+        """
         pose = Pose()
         pose.header.frame_id = '/panda_link0'
         pose.pose.position.x = tuple_pos_ee[0][0]
@@ -340,17 +366,48 @@ class FrankaDataCollection(object):
         return pose
     
     #Save the current joint state to a private member variable and publishes the result
-    def log_position(self):      
+    def log_position(self):
+        """
+        Save the current joint state to a member variable and log the result.
+        
+        This method retrieves the current joint values from the move group,
+        stores them in the 'current_joint_states' member variable, and 
+        logs a confirmation message.
+        """
         self.current_joint_states = self.move_group.get_current_joint_values() 
         rospy.loginfo(f"Position logged: Joint state saved to current_joint_states")
 
     # This function is called whenever a new PoseStamped message is received   
     def pose_callback(self, msg):
+        """
+        Callback function for PoseStamped message subscription.
+        
+        This method is called whenever a new PoseStamped message is received
+        on the subscribed topic. It stores the pose and logs the information.
+        
+        Parameters
+        ----------
+        msg : geometry_msgs.msg.PoseStamped
+            The received pose message containing position and orientation data
+        """
         self.current_pose = msg
         rospy.loginfo("Received Pose: %s", self.current_pose)
     
     # Cretates a list of ee-pose used for the AB travel
-    def point_generation(self):       
+    def point_generation(self):
+        """
+        Create a list of end-effector pose targets for path planning.
+        
+        This method generates a sequence of pose targets along a path by
+        incrementing the z-coordinate while keeping x and y fixed. It uses
+        the initial position stored in pose_A_tuple and the step length
+        defined by the class parameters.
+        
+        Returns
+        -------
+        list
+            A list of geometry_msgs.msg.Pose objects representing the path waypoints
+        """
         initial_z = self.pose_A_tuple[0][2]  # Start from the initial z position
         for _ in range(self.n_loc):
             pose = Pose()

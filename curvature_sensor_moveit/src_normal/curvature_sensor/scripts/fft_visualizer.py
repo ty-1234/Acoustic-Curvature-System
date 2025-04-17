@@ -1,17 +1,33 @@
+"""
+FFT Visualization Module
+
+This module provides functions for visualizing Fast Fourier Transform (FFT) data
+collected from curvature sensing experiments. It supports multiple visualization
+types including boxplots, line plots, average plots, and heatmaps.
+
+Author: Bipindra Rai
+Date: 2025-04-17
+"""
+
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
+
 def list_csv_files(directory):
     """
     Lists all CSV files in the specified directory.
 
-    Parameters:
-        directory (str): Path to the directory to scan for CSV files.
+    Parameters
+    ----------
+    directory : str
+        Path to the directory to scan for CSV files.
 
-    Returns:
-        list: List of CSV file paths.
+    Returns
+    -------
+    list
+        List of CSV file paths.
     """
     if not os.path.exists(directory):
         print(f"❌ Directory not found: {directory}")
@@ -22,16 +38,25 @@ def list_csv_files(directory):
         print(f"⚠️ No CSV files found in directory: {directory}")
     return csv_files
 
+
 def plot_fft_by_section(csv_path, kind='box'):
     """
     Visualizes FFT amplitudes grouped by robot sections.
 
-    Parameters:
-        csv_path (str): Path to the merged CSV file.
-        kind (str): 'box' for boxplot (default), 'line' for time series, 'average' for mean FFT, 'heatmap' for heatmap.
+    Parameters
+    ----------
+    csv_path : str
+        Path to the merged CSV file.
+    kind : str
+        Plot type to generate:
+        - 'box' for boxplot (default)
+        - 'line' for time series
+        - 'average' for mean FFT
+        - 'heatmap' for heatmap
 
-    Returns:
-        None
+    Returns
+    -------
+    None
     """
     if not os.path.exists(csv_path):
         print(f"❌ File not found: {csv_path}")
@@ -129,26 +154,31 @@ def plot_fft_by_section(csv_path, kind='box'):
     except Exception as e:
         print(f"❌ Error generating plot: {e}")
 
+
 def main():
     """
     Main function for the FFT Visualizer.
+    
     Allows the user to select a CSV file and visualization type.
 
-    📊 Plots Used in the Original Paper:
+    Notes
+    -----
+    Plots Used in the Original Paper:
+    
     1. Bar Graphs of FFT Amplitudes by Frequency Band:
        - X-axis: Frequency band (e.g., 200 Hz to 2000 Hz in 200 Hz steps)
        - Y-axis: Normalized FFT amplitude
-       - ✅ Used to illustrate how different frequency bands respond to a specific deformation.
+       - Used to illustrate how different frequency bands respond to a specific deformation.
 
     2. Line Graphs Comparing FFT Curves Across Curvatures:
        - Multiple lines, each corresponding to a curvature condition
-       - ✅ Used to show how bending the sensor causes distinct FFT patterns.
+       - Used to show how bending the sensor causes distinct FFT patterns.
 
     3. Scatter Plots or Regression Plots:
        - Curvature (X-axis) vs. FFT amplitude or model output (Y-axis)
-       - ✅ Used to evaluate regression performance.
+       - Used to evaluate regression performance.
 
-    🧠 Insight:
+    Insight:
     - As curvature increases, FFT amplitudes at certain frequencies either increase or decrease noticeably.
     - Visualizations in the paper were primarily:
       - Static per-curvature bar/line plots
@@ -185,6 +215,7 @@ def main():
 
     plot_kind = input("Enter plot type: ").strip().lower()
     plot_fft_by_section(csv_path, kind=plot_kind)
+
 
 if __name__ == "__main__":
     main()

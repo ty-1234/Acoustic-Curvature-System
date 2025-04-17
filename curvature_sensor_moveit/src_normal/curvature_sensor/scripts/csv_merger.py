@@ -1,17 +1,54 @@
+"""
+CSV Merger utility for curvature sensing data.
+
+This script merges two types of CSV files containing data from the curvature sensing system:
+1. Audio data (FFT features from acoustic signals)
+2. Robot positional data
+
+The files are merged based on timestamp alignment, creating a comprehensive dataset
+that connects audio features with the robot's position during data collection.
+
+Author: Bipindra Rai
+Date: 2025-04-17
+"""
+
 import pandas as pd
 import os
+
 
 def merge_csvs(curvature_value):
     """
     Merges two CSV files (audio and robot data) based on the nearest timestamps.
 
-    Parameters:
-    - curvature_value (float): The curvature value used to identify the corresponding CSV files.
+    This function finds pairs of audio and robot CSV files with matching test identifiers,
+    merges each pair based on the nearest timestamps, and saves the merged DataFrames
+    to new CSV files in the 'csv_data/merged' directory.
+    
+    Parameters
+    ----------
+    curvature_value : float
+        The curvature value used to identify the corresponding CSV files.
+        This value should match the curvature used during data collection.
+    
+    Returns
+    -------
+    None
+        The function does not return any value but creates merged CSV files in the
+        output directory if successful.
+    
+    Notes
+    -----
+    The function expects the following file naming convention:
+    - Audio files: raw_audio_{curvature_str}[test ID].csv
+    - Robot files: raw_robot_{curvature_str}[test ID].csv
+    
+    The merged files will be named: merged_{curvature_str}[test ID].csv
 
-    The function:
-    1. Finds pairs of audio and robot CSV files with matching test identifiers
-    2. Merges each pair based on the nearest timestamps.
-    3. Saves the merged DataFrames to new CSV files in the 'csv_data/merged' directory.
+    The [test ID] portion of filenames must be manually added to the raw data files
+    before running this script. For example, to identify multiple tests at the same
+    curvature, you might rename files to include identifiers like "[test 1]" or 
+    "[session A]". If the test ID is missing, the script will attempt to match
+    files based only on the curvature value.
     """
 
     # Get the base directory of the current script (curvature_sensor module root)
@@ -89,9 +126,14 @@ def merge_csvs(curvature_value):
         print(f"\n✅ Merge complete. Output saved to: {merged_output_path}")
         print(f"🧾 Rows in final CSV: {len(merged_df)}")
 
+
 if __name__ == "__main__":
     """
-    Entry point of the script. Prompts the user to input a curvature value and calls the merge_csvs function.
+    Entry point of the script.
+    
+    When executed directly, this script prompts the user to input a curvature value
+    and then calls the merge_csvs function to process and merge the corresponding
+    CSV files.
     """
     # Prompt the user to enter the curvature value
     curvature = float(input("Enter curvature value (e.g., 0.01818): "))
