@@ -86,10 +86,17 @@ def main():
             # Ensure the merged directory exists
             os.makedirs(merged_dir, exist_ok=True)
 
-            # Process each raw audio file
+            # Get unique curvature values from audio files
+            curvatures = set()
             for audio_file in audio_files:
-                curvature_str = audio_file.replace("raw_audio_", "").replace(".csv", "")
+                # Extract the curvature value from the filename
+                parts = audio_file.replace("raw_audio_", "").split("[")[0]
+                curvature_str = parts.replace(".csv", "")
                 curvature_val = float(curvature_str.replace("_", "."))
+                curvatures.add(curvature_val)
+
+            # Process each unique curvature value
+            for curvature_val in curvatures:
                 print(f"🔄 Merging data for curvature: {curvature_val}")
                 csv_merger.merge_csvs(curvature_value=curvature_val)
         except ImportError as e:
