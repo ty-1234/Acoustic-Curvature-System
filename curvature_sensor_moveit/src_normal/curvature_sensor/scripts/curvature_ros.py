@@ -573,6 +573,7 @@ class FrankaDataCollection(object):
                                                                               
     def move_Downwards(self):
         # Ask the user for the known curvature value
+        # TODO: Need to make the curvature input from user in cm and have it converted to curvature value for calculation
         curvature_value = float(input("Enter known curvature value (e.g., 0.01818): "))
         curvature_str = str(curvature_value).replace(".", "_")
         output_dir = os.path.join(os.path.dirname(__file__), "../csv_data/raw")
