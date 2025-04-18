@@ -1,11 +1,18 @@
 import cv2
 import numpy as np
-
-# This file handles visualization of the results:
-# 1. Displays the original image, grayscale image, edges, and curvature visualization.
-# 2. Draws circles on the image based on curvature intensity.
+import signal
+import sys
 
 def visualize_results(image, gray, edges, points, curvatures):
+    # Set up signal handler for Ctrl+C
+    def signal_handler(sig, frame):
+        print("\nCtrl+C detected. Closing windows and exiting...")
+        cv2.destroyAllWindows()
+        sys.exit(0)
+    
+    # Register the signal handler
+    signal.signal(signal.SIGINT, signal_handler)
+    
     # Create a copy of the original image to draw on
     output = image.copy()
     
@@ -26,7 +33,14 @@ def visualize_results(image, gray, edges, points, curvatures):
     # Display the image with curvature estimation visualization
     cv2.imshow("Curvature Estimation", output)
     
-    # Wait for a key press to close the windows
-    cv2.waitKey(0)
+    print("Press any key in the visualization windows to close them")
+    print("Or press Ctrl+C in the terminal to exit")
+    
+    # Wait for a key press to close the windows, but check more frequently
+    while True:
+        # Check for key press every 100ms instead of waiting indefinitely
+        if cv2.waitKey(100) != -1:
+            break
+    
     # Close all OpenCV windows
     cv2.destroyAllWindows()
