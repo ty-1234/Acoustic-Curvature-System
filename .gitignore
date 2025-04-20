@@ -1,0 +1,27 @@
+# Python virtual environments
+venv/
+env/
+ENV/
+curvature_sensor_moveit/src_normal/curvature_sensor/venv/
+
+# Python bytecode files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Local development settings
+.env
+.vscode/
+.idea/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Jupyter Notebook
+.ipynb_checkpoints
