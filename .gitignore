@@ -8,8 +8,9 @@ curvature_sensor_moveit/src_normal/curvature_sensor/venv/
 __pycache__/
 *.py[cod]
 *$py.class
-# Explicitly ignore this specific __pycache__ directory
+# Explicitly ignore these specific __pycache__ directories
 curvature_sensor_moveit/src_normal/curvature_sensor/scripts/__pycache__/
+curvature_sensor_moveit/src_normal/computervision_module/__pycache__/
 
 # Distribution / packaging
 dist/
