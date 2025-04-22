@@ -3,7 +3,7 @@ venv/
 env/
 ENV/
 .venv/
-
+curvature_sensor_moveit/src_normal/curvature_sensor/.venv
 # Python bytecode files
 __pycache__/
 *.py[cod]
