@@ -1,13 +1,25 @@
 import pandas as pd
 import os
 import time
+import sys
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 from lazypredict.Supervised import LazyClassifier, LazyRegressor
 from tqdm import tqdm
 
+# === Add parent directory to path for imports ===
+# This allows us to access the csv_data directory from the neural_network subdirectory
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if parent_dir not in sys.path:
+    sys.path.append(parent_dir)
+
+# === Set correct paths ===
+DATASET_PATH = os.path.join(parent_dir, "csv_data", "combined_dataset.csv")
+RESULTS_DIR = os.path.join(parent_dir, "csv_data")
+
+print(f"🔍 Loading dataset from: {DATASET_PATH}")
+
 # === Load Dataset ===
-DATASET_PATH = "csv_data/combined_dataset.csv"
 df = pd.read_csv(DATASET_PATH)
 
 # === Select FFT columns only ===
@@ -58,10 +70,13 @@ print("\n🏆 Top 5 Regressor Models (by RMSE):")
 print(models_reg.sort_values("RMSE").head(5))
 
 # === Save to CSV ===
-os.makedirs("results", exist_ok=True)
-models_class.to_csv("results/section_classification_results.csv")
-models_reg.to_csv("results/curvature_regression_results.csv")
+os.makedirs(RESULTS_DIR, exist_ok=True)
+class_results_path = os.path.join(RESULTS_DIR, "section_classification_results.csv")
+reg_results_path = os.path.join(RESULTS_DIR, "curvature_regression_results.csv")
+
+models_class.to_csv(class_results_path)
+models_reg.to_csv(reg_results_path)
 
 print("\n✅ Results saved to:")
-print("   - results/section_classification_results.csv")
-print("   - results/curvature_regression_results.csv")
+print(f"   - {class_results_path}")
+print(f"   - {reg_results_path}")
