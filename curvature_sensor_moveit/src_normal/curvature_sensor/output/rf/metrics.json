@@ -1,0 +1,7 @@
+{
+  "model": "rf",
+  "rmse_position_mean": 1.5717932624560644,
+  "rmse_curvature_mean": 0.010504296730503465,
+  "r2_position_mean": 0.14968457258277712,
+  "r2_curvature_mean": 0.6670817883521225
+}
