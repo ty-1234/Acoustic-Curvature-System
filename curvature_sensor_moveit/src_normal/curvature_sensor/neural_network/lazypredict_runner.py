@@ -31,7 +31,7 @@ def setup_paths():
         sys.path.append(parent_dir)
 
     dataset_path = os.path.join(parent_dir, "csv_data", "preprocessed", "preprocessed_training_dataset.csv")
-    results_dir = os.path.join(parent_dir, "csv_data", "neural_csv")
+    results_dir = os.path.join(parent_dir, "csv_data", "lazy_csv")
     
     return dataset_path, results_dir
 
