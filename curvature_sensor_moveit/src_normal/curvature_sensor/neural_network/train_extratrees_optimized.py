@@ -16,7 +16,7 @@ from sklearn.ensemble import ExtraTreesRegressor
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 dataset_path = os.path.join(parent_dir, "csv_data", "combined_dataset.csv")
 
-# Timestamp for output directory
+# Timestamp for output directory ---
 timestamp = time.strftime("%Y%m%d_%H%M%S")
 output_dir = os.path.join(parent_dir, "output", f"extratrees_optimized_{timestamp}")
 os.makedirs(output_dir, exist_ok=True)
