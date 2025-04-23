@@ -7,7 +7,8 @@ It predicts both:
 - The curvature applied at that position
 
 It wraps each model in MultiOutputRegressor and evaluates them using RMSE.
-Only rows where curvature is actively applied (i.e., section is labeled) are used.
+Only rows where curvature is actively applied (as indicated by Curvature_Active = 1) are used.
+Features include raw FFT bands and engineered statistical + band ratio features.
 Results are saved for further comparison.
 
 Author: Bipindra Rai
@@ -29,17 +30,18 @@ def setup_paths():
     if parent_dir not in sys.path:
         sys.path.append(parent_dir)
 
-    dataset_path = os.path.join(parent_dir, "csv_data", "combined_dataset.csv")
+    dataset_path = os.path.join(parent_dir, "csv_data", "preprocessed", "preprocessed_training_dataset.csv")
     results_dir = os.path.join(parent_dir, "csv_data", "neural_csv")
     
     return dataset_path, results_dir
 
 def prepare_data(df, fft_cols):
-    # Remove rows where no curvature is being applied (i.e., Section is empty)
-    df = df[df["Section"].notna()]
-    df["Position_cm"] = df["Section"].str.replace("cm", "").astype(float)
+    # Use only rows where curvature is actively applied
+    df = df[df["Curvature_Active"] == 1]  # Use only rows where curvature is actively applied
 
-    X = df[fft_cols]
+    # Include FFTs and engineered features including band ratios
+    engineered_cols = [col for col in df.columns if col.startswith("FFT_") or "Band" in col or "Ratio" in col or "FFT_" in col]
+    X = df[engineered_cols]
     y = df[["Position_cm", "Curvature_Label"]]
 
     scaler = MinMaxScaler()
