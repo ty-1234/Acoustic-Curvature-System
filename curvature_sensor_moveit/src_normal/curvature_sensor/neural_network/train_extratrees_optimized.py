@@ -43,17 +43,18 @@ joblib.dump(scaler, scaler_path)
 # === Define base model and hyperparameter grid ===
 base_model = ExtraTreesRegressor(random_state=42)
 param_grid = {
-    "estimator__n_estimators": [300, 500, 700],
-    "estimator__max_depth": [10, 20, None],
-    "estimator__min_samples_split": [2, 5, 10],
-    "estimator__min_samples_leaf": [1, 2, 4],
-    "estimator__max_features": ["sqrt", "log2"]
+    "estimator__n_estimators": [300, 500, 700, 1000, 1500],
+    "estimator__max_depth": [5, 10, 15, 20, None],
+    "estimator__min_samples_split": [2, 5, 10, 20],
+    "estimator__min_samples_leaf": [1, 2, 4, 8],
+    "estimator__max_features": ["sqrt", "log2", None]
 }
 model = MultiOutputRegressor(base_model)
 
 # === Hyperparameter tuning ===
 print("\n🔧 Running RandomizedSearchCV with extensive grid...")
-search = RandomizedSearchCV(model, param_distributions=param_grid, n_iter=30, random_state=42, n_jobs=-1, cv=3)
+# Increased n_iter to 40 for better coverage of the expanded parameter space
+search = RandomizedSearchCV(model, param_distributions=param_grid, n_iter=40, random_state=42, n_jobs=-1, cv=3)
 search.fit(X_scaled, y)
 best_model = search.best_estimator_
 print(f"\n✅ Best Parameters: {search.best_params_}")
@@ -84,7 +85,7 @@ best_model.fit(X_scaled, y)
 model_path = os.path.join(output_dir, "multioutput_model.pkl")
 joblib.dump(best_model, model_path)
 
-# === Save metrics ===
+# === Save metrics ===.
 metrics = {
     "rmse_position_mean": np.mean(rmse_pos_list),
     "rmse_curvature_mean": np.mean(rmse_curv_list),
