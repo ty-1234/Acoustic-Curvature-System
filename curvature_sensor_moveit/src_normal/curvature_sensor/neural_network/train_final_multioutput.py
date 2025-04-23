@@ -52,7 +52,7 @@ if args.model is None:
 
 # === Setup paths ===
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-dataset_path = os.path.join(parent_dir, "csv_data", "combined_dataset.csv")
+dataset_path = os.path.join(parent_dir, "csv_data", "preprocessed", "preprocessed_training_dataset.csv")
 output_dir = os.path.join(parent_dir, "output")
 os.makedirs(output_dir, exist_ok=True)
 
@@ -66,15 +66,15 @@ print(f"📂 Loading dataset from: {dataset_path}")
 print(f"📂 Outputs will be saved to: {model_output_dir}")
 
 df = pd.read_csv(dataset_path)
-df = df.dropna(subset=["Curvature_Label", "Section"])
-df["Position_cm"] = df["Section"].str.replace("cm", "").astype(float)
+df = df[df["Curvature_Active"] == 1]
 
 # Check the unique RunIDs
 print("📋 Unique RunIDs detected:", df["RunID"].unique())
 print(f"Total unique RunIDs: {df['RunID'].nunique()}")
 
-fft_cols = [col for col in df.columns if col.startswith("FFT_")]
-X = df[fft_cols]
+# Use FFT features and engineered features including band ratios
+feature_cols = [col for col in df.columns if col.startswith("FFT_") or "Band" in col or "Ratio" in col or "FFT_" in col]
+X = df[feature_cols]
 y = df[["Position_cm", "Curvature_Label"]]
 groups = df["RunID"]
 
