@@ -1,0 +1,6 @@
+#temp file
+pandas
+numpy
+scikit-learn
+lazypredict
+tqdm

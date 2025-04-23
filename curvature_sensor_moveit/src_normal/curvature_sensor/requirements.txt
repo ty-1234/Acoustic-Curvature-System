@@ -32,6 +32,10 @@ tqdm>=4.46.0  # Progress bars
 joblib>=0.15.0  # Parallel computing
 pillow>=7.1.0  # Image processing support
 
+# Machine Learning
+scikit-learn>=0.23.0
+lazypredict>=0.2.12
+
 # Development tools
 pytest>=6.0.0
 pylint>=2.5.0
