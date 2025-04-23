@@ -14,6 +14,21 @@ fft_cols = [col for col in df.columns if col.startswith("FFT_")]
 # === Determine if curvature is being applied ===
 df["Curvature_Active"] = df[["Section", "PosX", "PosY", "PosZ"]].notna().all(axis=1).astype(int)
 
+# Label only stable rest periods as Curvature_Label = 0.0
+MIN_IDLE_FRAMES = 5
+idle_indices = []
+idle_count = 0
+
+for i, active in enumerate(df["Curvature_Active"]):
+    if active == 0:
+        idle_count += 1
+        if idle_count >= MIN_IDLE_FRAMES:
+            idle_indices.append(i)
+    else:
+        idle_count = 0  # Reset counter when pressing resumes
+
+df.loc[idle_indices, "Curvature_Label"] = 0.0
+
 # === Clean and convert Position ===
 df.loc[df["Curvature_Active"] == 1, "Position_cm"] = df.loc[df["Curvature_Active"] == 1, "Section"].str.replace("cm", "").astype(float)
 
