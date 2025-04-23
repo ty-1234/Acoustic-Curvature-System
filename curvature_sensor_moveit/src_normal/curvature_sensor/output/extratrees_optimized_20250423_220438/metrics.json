@@ -1,0 +1,13 @@
+{
+  "rmse_position_mean": 1.5056700280772757,
+  "rmse_curvature_mean": 0.008965839356130798,
+  "r2_position_mean": 0.21835387611953483,
+  "r2_curvature_mean": 0.7574081177090777,
+  "best_params": {
+    "estimator__n_estimators": 300,
+    "estimator__min_samples_split": 2,
+    "estimator__min_samples_leaf": 1,
+    "estimator__max_features": null,
+    "estimator__max_depth": null
+  }
+}
