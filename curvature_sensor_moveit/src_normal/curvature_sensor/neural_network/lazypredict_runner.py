@@ -29,7 +29,7 @@ def setup_paths():
         sys.path.append(parent_dir)
 
     dataset_path = os.path.join(parent_dir, "csv_data", "combined_dataset.csv")
-    results_dir = os.path.join(parent_dir, "csv_data")
+    results_dir = os.path.join(parent_dir, "csv_data", "neural_csv")
     
     return dataset_path, results_dir
 
