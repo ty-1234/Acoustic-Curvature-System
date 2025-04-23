@@ -7,6 +7,7 @@ It predicts both:
 - The curvature applied at that position
 
 It wraps each model in MultiOutputRegressor and evaluates them using RMSE.
+Only rows where curvature is actively applied (i.e., section is labeled) are used.
 Results are saved for further comparison.
 
 Author: Bipindra Rai
@@ -34,7 +35,8 @@ def setup_paths():
     return dataset_path, results_dir
 
 def prepare_data(df, fft_cols):
-    df = df.dropna(subset=["Curvature_Label", "Section"])
+    # Remove rows where no curvature is being applied (i.e., Section is empty)
+    df = df[df["Section"].notna()]
     df["Position_cm"] = df["Section"].str.replace("cm", "").astype(float)
 
     X = df[fft_cols]

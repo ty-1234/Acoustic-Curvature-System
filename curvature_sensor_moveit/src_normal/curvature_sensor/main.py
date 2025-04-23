@@ -44,7 +44,7 @@ def main():
     print("2. Collect Data (curvature_data_collector.py)")
     print("3. ROS Control (curvature_ros.py)")
     print("4. Merge CSV Files (csv_merger.py)")
-    print("5. Preprocess Data (curvature_data_processor.py)")
+    print("5. Preprocess Data (preprocess_training_features.py)")
     print("6. Visualize FFT Data (fft_visualizer.py)")
 
     try:
@@ -129,33 +129,17 @@ def main():
     # Task 5: Preprocess data
     elif choice == 5:
         try:
-            # Dynamically import the curvature_data_processor module
-            curvature_data_processor = importlib.import_module("curvature_data_processor")
-            raw_dir = os.path.join(os.path.dirname(__file__), "csv_data", "raw")
-
-            # Check if the raw directory exists
-            if not os.path.exists(raw_dir):
-                print(f"⚠️ Raw directory not found: {raw_dir}")
-                return
-
-            # List all raw CSV files in the raw directory
-            files = [f for f in os.listdir(raw_dir) if f.startswith("raw_") and f.endswith(".csv")]
-
-            # Check if there are any raw files to process
-            if not files:
-                print("⚠️ No raw files found in 'csv_data/raw/'")
-                return
-
-            # Process each raw file
-            for filename in files:
-                # Extract curvature value from filename by handling the underscore conversion
-                curvature_str = filename.replace("raw_", "").replace(".csv", "")
-                curvature_val = float(curvature_str.replace("_", "."))
-                print(f"🔄 Processing: {filename} (curvature: {curvature_val})")
-                curvature_data_processor.process_curvature_data(curvature_value=curvature_val)
+            # Dynamically import the preprocess_training_features module
+            preprocess_training_features = importlib.import_module("preprocess_training_features")
+            print("🔄 Processing training features...")
+            preprocess_training_features.process_curvature_data()
+            print("✅ Feature preprocessing completed successfully!")
         except ImportError as e:
             # Handle missing module errors
-            print(f"❌ Error: {e}. Ensure 'curvature_data_processor.py' exists in the 'scripts' directory.")
+            print(f"❌ Error: {e}. Ensure 'preprocess_training_features.py' exists in the 'scripts' directory.")
+        except Exception as e:
+            # Handle other errors during processing
+            print(f"❌ Error during preprocessing: {e}")
 
     # Task 6: Visualize FFT Data
     elif choice == 6:
