@@ -49,7 +49,7 @@ def run_multioutput_regressors(X_train, X_test, y_train, y_test):
     results = []
 
     print("\n📐 Running MultiOutput Regressors (Position + Curvature Estimation)...")
-    for name, RegressorClass in REGRESSORS.items():
+    for name, RegressorClass in REGRESSORS:
         try:
             model = MultiOutputRegressor(RegressorClass())
             start = time.time()
@@ -58,8 +58,9 @@ def run_multioutput_regressors(X_train, X_test, y_train, y_test):
 
             y_pred = model.predict(X_test)
 
-            rmse_pos = mean_squared_error(y_test.iloc[:, 0], y_pred[:, 0], squared=False)
-            rmse_curv = mean_squared_error(y_test.iloc[:, 1], y_pred[:, 1], squared=False)
+            # Manual RMSE calculation for maximum compatibility
+            rmse_pos = mean_squared_error(y_test.iloc[:, 0], y_pred[:, 0]) ** 0.5
+            rmse_curv = mean_squared_error(y_test.iloc[:, 1], y_pred[:, 1]) ** 0.5
 
             results.append({
                 "Model": name,
