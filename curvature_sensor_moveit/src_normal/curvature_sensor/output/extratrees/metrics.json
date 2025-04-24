@@ -1,7 +1,0 @@
-{
-  "model": "extratrees",
-  "rmse_position_mean": 1.4824502637080683,
-  "rmse_curvature_mean": 0.009104359860454665,
-  "r2_position_mean": 0.2428268260151245,
-  "r2_curvature_mean": 0.7490628293978406
-}
