@@ -35,7 +35,7 @@ import numpy as np
 
 param_dist = {
     'estimator__n_estimators': [50, 100, 200],
-    'estimator__max_features': ['auto', 'sqrt', 'log2'],
+    'estimator__max_features': ['sqrt', 'log2', None],
     'estimator__max_depth': [None, 10, 20, 30],
     'estimator__min_samples_split': [2, 5, 10],
     'estimator__min_samples_leaf': [1, 2, 4],
@@ -65,7 +65,9 @@ metrics = {
     "r2_curvature": r2_curv,
     "best_params": search.best_params_
 }
-model_output_dir = os.path.join(base_dir, "models", "extratrees_optimized")
+from datetime import datetime
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+model_output_dir = os.path.join(base_dir, "models", f"extratrees_optimized_{timestamp}")
 os.makedirs(model_output_dir, exist_ok=True)
 with open(os.path.join(model_output_dir, "metrics.json"), "w") as f:
     json.dump(metrics, f, indent=2)
@@ -90,3 +92,7 @@ plt.clf()
 
 import joblib
 joblib.dump(best_model, os.path.join(model_output_dir, "extratrees_model.pkl"))
+print("✅ Training complete")
+print("Best Parameters:", search.best_params_)
+print(f"Curvature RMSE: {rmse_curv:.5f}, R²: {r2_curv:.3f}")
+print(f"Position RMSE: {rmse_pos:.2f} cm, R²: {r2_pos:.3f}")
