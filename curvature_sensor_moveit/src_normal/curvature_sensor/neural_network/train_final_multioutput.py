@@ -13,8 +13,7 @@ from sklearn.multioutput import MultiOutputRegressor
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.ensemble import ExtraTreesRegressor, RandomForestRegressor, GradientBoostingRegressor
 from xgboost import XGBRegressor
-from sklearn.model_selection import ParameterGrid
-from lightgbm import LGBMRegressor  
+from lightgbm import LGBMRegressor
 
 # === Setup paths ===
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -22,15 +21,10 @@ dataset_path = os.path.join(parent_dir, "csv_data", "preprocessed", "preprocesse
 output_dir = os.path.join(parent_dir, "output")
 os.makedirs(output_dir, exist_ok=True)
 
+# === Load and preprocess dataset ===
 df = pd.read_csv(dataset_path)
-
-# Drop rows where Position_cm is missing while Curvature_Active == 1
 df = df[~(df["Position_cm"].isna() & (df["Curvature_Active"] == 1))]
-
-# Fill missing Position_cm with -1 to retain rows for curvature learning
 df["Position_cm"] = df["Position_cm"].fillna(-1)
-
-# Add FFT Peak Index
 df["FFT_Peak_Index"] = (
     df[[col for col in df.columns if col.startswith("FFT_")]]
     .idxmax(axis=1)
@@ -40,31 +34,26 @@ df["FFT_Peak_Index"] = (
     .astype(int)
 )
 
-# Check the unique RunIDs
-print("📋 Unique RunIDs detected:", df["RunID"].unique())
+print("\n📋 Unique RunIDs detected:", df["RunID"].unique())
 print(f"Total unique RunIDs: {df['RunID'].nunique()}")
 
-# Use FFT features and engineered features including band ratios, and Curvature_Active
 feature_cols = [col for col in df.columns if col.startswith("FFT_") or "Band" in col or "Ratio" in col or col == "Curvature_Active" or col == "FFT_Peak_Index"]
 X = df[feature_cols]
 y = df[["Position_cm", "Curvature_Label"]]
 groups = df["RunID"]
 
-# === Scaling ===
 scaler = MinMaxScaler()
 X_scaled = scaler.fit_transform(X)
 
 models_to_run = ["extratrees", "xgb", "lgbm", "rf"]
+all_metrics = []
 
 for model_name in models_to_run:
-    # Create model-specific subfolder
     model_output_dir = os.path.join(output_dir, model_name)
     os.makedirs(model_output_dir, exist_ok=True)
 
     print(f"\n🚀 Training final model: {model_name}")
-    print(f"📂 Outputs will be saved to: {model_output_dir}")
 
-    # === Model selection and hyperparameter tuning ===
     if model_name == "extratrees":
         base_model = ExtraTreesRegressor(n_estimators=100, random_state=42)
         param_grid = {
@@ -78,16 +67,9 @@ for model_name in models_to_run:
     elif model_name == "xgb":
         base_model = XGBRegressor(n_estimators=100, random_state=42)
         param_grid = {
-            "estimator__max_depth": [3, 5, 7], 
-            "estimator__learning_rate": [0.05, 0.1, 0.2], 
+            "estimator__max_depth": [3, 5, 7],
+            "estimator__learning_rate": [0.05, 0.1, 0.2],
             "estimator__n_estimators": [100, 200, 300]
-        }
-    elif model_name == "gb":
-        base_model = GradientBoostingRegressor(random_state=42)
-        param_grid = {
-            "estimator__n_estimators": [100, 200], 
-            "estimator__learning_rate": [0.05, 0.1], 
-            "estimator__max_depth": [3, 5, 7]
         }
     elif model_name == "lgbm":
         base_model = LGBMRegressor(random_state=42)
@@ -109,29 +91,18 @@ for model_name in models_to_run:
             "estimator__bootstrap": [True, False]
         }
 
-    # Multi-output regression
     model = MultiOutputRegressor(base_model)
-
-    # === Hyperparameter tuning using RandomizedSearchCV ===
     print(f"\n🔧 Performing RandomizedSearchCV for {model_name}...")
     search = RandomizedSearchCV(model, param_distributions=param_grid, n_iter=10, random_state=42, n_jobs=-1, cv=3)
     search.fit(X_scaled, y)
-
     best_model = search.best_estimator_
-    print(f"\n🚀 Best parameters for {model_name}: {search.best_params_}")
 
-    # === Evaluation ===
-    gkf = GroupKFold(n_splits=2)  # Use 2 splits for your dataset
-    rmse_pos_list = []
-    rmse_curv_list = []
-    r2_pos_list = []
-    r2_curv_list = []
+    gkf = GroupKFold(n_splits=2)
+    rmse_pos_list, rmse_curv_list, r2_pos_list, r2_curv_list = [], [], [], []
 
-    print("\n📊 Evaluating with GroupKFold:")
     for fold, (train_idx, test_idx) in enumerate(gkf.split(X_scaled, y, groups=groups)):
         X_train, X_test = X_scaled[train_idx], X_scaled[test_idx]
         y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
-
         best_model.fit(X_train, y_train)
         y_pred = best_model.predict(X_test)
 
@@ -145,9 +116,6 @@ for model_name in models_to_run:
         r2_pos_list.append(r2_pos)
         r2_curv_list.append(r2_curv)
 
-        print(f"Fold {fold+1}: RMSE Pos = {rmse_pos:.3f} cm, RMSE Curv = {rmse_curv:.5f}, R² Pos = {r2_pos:.3f}, R² Curv = {r2_curv:.3f}")
-
-    # === Save metrics ===
     metrics = {
         "model": model_name,
         "rmse_position_mean": np.mean(rmse_pos_list),
@@ -155,7 +123,35 @@ for model_name in models_to_run:
         "r2_position_mean": np.mean(r2_pos_list),
         "r2_curvature_mean": np.mean(r2_curv_list)
     }
+    all_metrics.append(metrics)
 
     print(f"\n📌 Final Evaluation Metrics for {model_name}:")
     for k, v in metrics.items():
         print(f"{k}: {v}")
+
+# === Save and plot summary ===
+metrics_df = pd.DataFrame(all_metrics)
+metrics_df.sort_values("rmse_curvature_mean", inplace=True)
+metrics_df.to_csv(os.path.join(output_dir, "model_comparison.csv"), index=False)
+
+plt.figure(figsize=(10, 6))
+plt.bar(metrics_df["model"], metrics_df["rmse_curvature_mean"], color='skyblue')
+plt.title("Model Comparison - RMSE Curvature")
+plt.ylabel("RMSE (Curvature)")
+plt.xlabel("Model")
+plt.grid(True, axis='y', linestyle='--', alpha=0.6)
+plt.tight_layout()
+plt.savefig(os.path.join(output_dir, "rmse_curvature_comparison.png"))
+plt.close()
+
+plt.figure(figsize=(10, 6))
+plt.bar(metrics_df["model"], metrics_df["rmse_position_mean"], color='lightgreen')
+plt.title("Model Comparison - RMSE Position")
+plt.ylabel("RMSE (Position cm)")
+plt.xlabel("Model")
+plt.grid(True, axis='y', linestyle='--', alpha=0.6)
+plt.tight_layout()
+plt.savefig(os.path.join(output_dir, "rmse_position_comparison.png"))
+plt.close()
+
+print("\n✅ All models evaluated and summary saved.")
