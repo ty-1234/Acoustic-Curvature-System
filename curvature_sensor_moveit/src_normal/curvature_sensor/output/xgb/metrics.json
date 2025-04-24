@@ -1,7 +1,0 @@
-{
-  "model": "xgb",
-  "rmse_position_mean": 1.4010089624502684,
-  "rmse_curvature_mean": 0.012031720007422845,
-  "r2_position_mean": 0.3208262986181237,
-  "r2_curvature_mean": 0.5589799262439938
-}

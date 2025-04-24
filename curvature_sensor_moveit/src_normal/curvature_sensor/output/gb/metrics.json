@@ -1,7 +1,0 @@
-{
-  "model": "gb",
-  "rmse_position_mean": 1.4074374239683212,
-  "rmse_curvature_mean": 0.011483102735224706,
-  "r2_position_mean": 0.31492634896043786,
-  "r2_curvature_mean": 0.6020703583117712
-}
