@@ -1,0 +1,24 @@
+{
+  "model_position": "ExtraTrees",
+  "rmse_position": 0.06845311536596829,
+  "r2_position": 0.9983930805700622,
+  "best_params_position": {
+    "estimator__n_estimators": 100,
+    "estimator__min_samples_split": 6,
+    "estimator__min_samples_leaf": 5,
+    "estimator__max_features": null,
+    "estimator__max_depth": 40,
+    "estimator__bootstrap": true
+  },
+  "model_curvature": "ExtraTrees",
+  "rmse_curvature": 0.00831374146116693,
+  "r2_curvature": 0.7745555356113074,
+  "best_params_curvature": {
+    "estimator__n_estimators": 1000,
+    "estimator__min_samples_split": 10,
+    "estimator__min_samples_leaf": 5,
+    "estimator__max_features": "sqrt",
+    "estimator__max_depth": 30,
+    "estimator__bootstrap": true
+  }
+}

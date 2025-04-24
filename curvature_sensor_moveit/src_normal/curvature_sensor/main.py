@@ -130,12 +130,16 @@ def main():
     elif choice == 5:
         try:
             # Dynamically import the preprocess_training_features module
-            preprocess_training_features = importlib.import_module("preprocess_training_features")
+            module_path = os.path.join(scripts_dir, "preprocess_training_features")
+            spec = importlib.util.spec_from_file_location("preprocess_training_features", f"{module_path}.py")
+            preprocess_training_features = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(preprocess_training_features)
+
             print("🔄 Processing training features...")
             preprocess_training_features.process_curvature_data()
             print("✅ Feature preprocessing completed successfully!")
-        except ImportError as e:
-            # Handle missing module errors
+        except FileNotFoundError as e:
+            # Handle missing file errors
             print(f"❌ Error: {e}. Ensure 'preprocess_training_features.py' exists in the 'scripts' directory.")
         except Exception as e:
             # Handle other errors during processing

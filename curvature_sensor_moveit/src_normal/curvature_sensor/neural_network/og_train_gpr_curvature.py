@@ -17,10 +17,14 @@ dataset_path = os.path.join(parent_dir, "csv_data", "combined_dataset.csv")
 output_dir = os.path.join(parent_dir, "output", "gpr_curvature")  # Updated directory structure
 os.makedirs(output_dir, exist_ok=True)
 
-# === Load dataset ===
+# === Load dataset and filter only active curvature segments ===
 print("\n📥 Loading dataset...")
 df = pd.read_csv(dataset_path)
-df = df.dropna(subset=["Curvature_Label", "Section"])
+# === Apply logic: only use rows where curvature is actively applied ===
+df["Curvature_Active"] = df[["Section", "PosX", "PosY", "PosZ"]].notna().all(axis=1).astype(int)
+df = df[df["Curvature_Active"] == 1]
+# Optionally, drop only on Curvature_Label now
+df = df.dropna(subset=["Curvature_Label"])
 fft_cols = [col for col in df.columns if col.startswith("FFT_")]
 X = df[fft_cols]
 y = df["Curvature_Label"]
