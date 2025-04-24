@@ -17,8 +17,16 @@ df = pd.read_csv(dataset_path)
 df = df[df["Curvature_Active"] == 1]
 
 # FFT peak index feature
+import re
 fft_cols = [col for col in df.columns if col.startswith("FFT_")]
-df["FFT_Peak_Index"] = df[fft_cols].idxmax(axis=1).str.extract("(\d+)").astype(int)
+df["FFT_Peak_Index"] = (
+    df[fft_cols]
+    .idxmax(axis=1)
+    .str.extract(r"(\d+)")
+    .astype(float)
+    .fillna(-1)
+    .astype(int)
+)
 
 # Select features and targets
 feature_cols = [col for col in df.columns if col.startswith("FFT_") or "Band" in col or "Ratio" in col or col == "FFT_Peak_Index"]
