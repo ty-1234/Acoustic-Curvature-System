@@ -24,8 +24,15 @@ y = df[["Position_cm", "Curvature_Label"]]
 scaler = MinMaxScaler()
 X_scaled = scaler.fit_transform(X)
 
-# Split dataset
-X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
+# GroupKFold split using RunID to avoid temporal leakage
+from sklearn.model_selection import GroupKFold
+
+groups = df["RunID"]
+gkf = GroupKFold(n_splits=2)
+train_idx, test_idx = next(gkf.split(X_scaled, y, groups))
+
+X_train, X_test = X_scaled[train_idx], X_scaled[test_idx]
+y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
 
 # Existing code continues here (assuming the original code is below)
 
