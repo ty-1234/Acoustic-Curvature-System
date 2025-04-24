@@ -12,11 +12,16 @@ base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 dataset_path = os.path.join(base_dir, "csv_data", "preprocessed", "preprocessed_training_dataset.csv")
 df = pd.read_csv(dataset_path)
 
+
 # Use only active curvature rows
 df = df[df["Curvature_Active"] == 1]
 
+# FFT peak index feature
+fft_cols = [col for col in df.columns if col.startswith("FFT_")]
+df["FFT_Peak_Index"] = df[fft_cols].idxmax(axis=1).str.extract("(\d+)").astype(int)
+
 # Select features and targets
-feature_cols = [col for col in df.columns if col.startswith("FFT_") or "Band" in col or "Ratio" in col]
+feature_cols = [col for col in df.columns if col.startswith("FFT_") or "Band" in col or "Ratio" in col or col == "FFT_Peak_Index"]
 X = df[feature_cols]
 y = df[["Position_cm", "Curvature_Label"]]
 
@@ -41,18 +46,18 @@ from sklearn.model_selection import RandomizedSearchCV
 import numpy as np
 
 param_dist = {
-    'estimator__n_estimators': [50, 100, 200],
+    'estimator__n_estimators': [100, 200, 300, 500, 800, 1000],
     'estimator__max_features': ['sqrt', 'log2', None],
-    'estimator__max_depth': [None, 10, 20, 30],
-    'estimator__min_samples_split': [2, 5, 10],
-    'estimator__min_samples_leaf': [1, 2, 4],
+    'estimator__max_depth': [10, 20, 30, 40, 50, None],
+    'estimator__min_samples_split': [2, 4, 6, 8, 10],
+    'estimator__min_samples_leaf': [1, 2, 3, 4, 5],
     'estimator__bootstrap': [True, False]
 }
 
 base_model = ExtraTreesRegressor(random_state=42)
 model = MultiOutputRegressor(base_model)
 
-search = RandomizedSearchCV(model, param_distributions=param_dist, n_iter=20, cv=3, random_state=42, n_jobs=-1, verbose=2)
+search = RandomizedSearchCV(model, param_distributions=param_dist, n_iter=60, cv=3, random_state=42, n_jobs=-1, verbose=2)
 search.fit(X_train, y_train)
 
 best_model = search.best_estimator_

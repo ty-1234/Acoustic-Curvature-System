@@ -56,6 +56,9 @@ feature_set["High_Band_Mean"] = high_band.mean(axis=1)
 feature_set["Mid_to_Low_Band_Ratio"] = feature_set["Mid_Band_Mean"] / feature_set["Low_Band_Mean"].replace(0, 1e-6)
 feature_set["High_to_Mid_Band_Ratio"] = feature_set["High_Band_Mean"] / feature_set["Mid_Band_Mean"].replace(0, 1e-6)
 
+# FFT peak index feature
+feature_set["FFT_Peak_Index"] = df[fft_cols].idxmax(axis=1).str.extract("(\d+)").astype(int)
+
 # Add target and metadata columns
 feature_set["Position_cm"] = df["Position_cm"]
 feature_set["Curvature_Label"] = df["Curvature_Label"]
