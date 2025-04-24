@@ -18,7 +18,7 @@ from lightgbm import LGBMRegressor
 # === Setup paths ===
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 dataset_path = os.path.join(parent_dir, "csv_data", "preprocessed", "preprocessed_training_dataset.csv")
-output_dir = os.path.join(parent_dir, "output")
+output_dir = os.path.join(parent_dir, "multioutput_model_results")
 os.makedirs(output_dir, exist_ok=True)
 
 # === Load and preprocess dataset ===
