@@ -1,0 +1,5 @@
+{
+  "rmse_mean": 0.009616693915226151,
+  "r2_mean": 0.7201231475481841,
+  "kernel": "RationalQuadratic(alpha=0.0297, length_scale=0.221) + WhiteKernel(noise_level=1e-05)"
+}
