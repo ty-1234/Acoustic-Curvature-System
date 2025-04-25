@@ -1,0 +1,15 @@
+{
+  "model": "ExtraTrees",
+  "rmse_position": 0.7342847622099361,
+  "rmse_curvature": 0.006156184944943982,
+  "r2_position": 0.7848944838037952,
+  "r2_curvature": 0.8731394215616807,
+  "best_params": {
+    "estimator__n_estimators": 200,
+    "estimator__min_samples_split": 6,
+    "estimator__min_samples_leaf": 2,
+    "estimator__max_features": "sqrt",
+    "estimator__max_depth": 40,
+    "estimator__bootstrap": true
+  }
+}
