@@ -40,6 +40,7 @@ print(f"Total unique RunIDs: {df['RunID'].nunique()}")
 feature_cols = [col for col in df.columns if col.startswith("FFT_") or "Band" in col or "Ratio" in col or col == "Curvature_Active" or col == "FFT_Peak_Index"]
 X = df[feature_cols]
 y = df[["Position_cm", "Curvature_Label"]]
+sample_weight = np.where(y["Position_cm"] == -1, 0.01, 1.0)
 groups = df["RunID"]
 
 scaler = MinMaxScaler()
@@ -103,7 +104,7 @@ for model_name in models_to_run:
     for fold, (train_idx, test_idx) in enumerate(gkf.split(X_scaled, y, groups=groups)):
         X_train, X_test = X_scaled[train_idx], X_scaled[test_idx]
         y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
-        best_model.fit(X_train, y_train)
+        best_model.fit(X_train, y_train, sample_weight=sample_weight[train_idx])
         y_pred = best_model.predict(X_test)
 
         rmse_pos = mean_squared_error(y_test.iloc[:, 0], y_pred[:, 0]) ** 0.5

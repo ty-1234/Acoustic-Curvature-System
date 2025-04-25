@@ -14,7 +14,7 @@ from sklearn.preprocessing import MinMaxScaler
 # === Setup paths ===
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 dataset_path = os.path.join(parent_dir, "csv_data", "combined_dataset.csv")
-output_dir = os.path.join(parent_dir, "output", "gpr_curvature")  # Updated directory structure
+output_dir = os.path.join(parent_dir,"OG_gpr_Output") 
 os.makedirs(output_dir, exist_ok=True)
 
 # === Load dataset and filter only active curvature segments ===
