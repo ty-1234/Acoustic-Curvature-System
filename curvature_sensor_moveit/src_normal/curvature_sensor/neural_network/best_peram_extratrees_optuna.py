@@ -133,7 +133,7 @@ maxerr_curv = max_error(y_test.iloc[:, 1], y_pred[:, 1])
 
 # Use timestamped output directory in the correct location
 timestamp = datetime.now().strftime("%-I:%M%p").lower()
-model_output_dir = os.path.join(base_dir, "neural_network", "model_outputs", "extratrees", timestamp)
+model_output_dir = os.path.join(base_dir, "neural_network", "model_outputs", "extratrees", "BEST")
 os.makedirs(model_output_dir, exist_ok=True)
 
 # Save metrics to JSON
@@ -162,7 +162,12 @@ joblib.dump(best_model, os.path.join(model_output_dir, "extratrees_optuna_model.
 # Also save the scaler for future use
 joblib.dump(scaler, os.path.join(model_output_dir, "feature_scaler.pkl"))
 
-# Export data to CSV files for external visualization
+# === CSV Export Functions ===
+# Each function below exports specific data to CSV files with the "et_" prefix
+# These files can be used for visualization, analysis, and model comparison
+
+# Export prediction data - contains true and predicted values for both targets with errors
+# Use for: scatter plots comparing predictions, error analysis by run ID or curvature state
 def export_prediction_data():
     """
     Exports prediction data with actual vs predicted values and errors
@@ -194,14 +199,16 @@ def export_prediction_data():
         'Curvature_Active': df.iloc[test_idx]['Curvature_Active'].values
     })
     
-    # Export to CSV
-    csv_path = os.path.join(model_output_dir, "prediction_data.csv")
+    # Export to CSV with "et_" prefix
+    csv_path = os.path.join(model_output_dir, "et_prediction_data.csv")
     predictions_df.to_csv(csv_path, index=False)
     print(f"✓ Prediction data exported to: {csv_path}")
     
     # Return for potential further use
     return predictions_df
 
+# Export feature importance - shows which features had the greatest impact on predictions
+# Use for: bar charts showing most influential features and feature selection decisions
 def export_feature_importance():
     """
     Exports feature importance data from the trained model.
@@ -220,13 +227,15 @@ def export_feature_importance():
         'Importance': mean_importance,
     }).sort_values('Importance', ascending=False)
     
-    # Export to CSV
-    csv_path = os.path.join(model_output_dir, "feature_importance.csv")
+    # Export to CSV with "et_" prefix
+    csv_path = os.path.join(model_output_dir, "et_feature_importance.csv")
     importance_df.to_csv(csv_path, index=False)
     print(f"✓ Feature importance data exported to: {csv_path}")
     
     return importance_df
 
+# Export optimization history - contains the fixed hyperparameters used (no optimization performed)
+# Use for: documenting model configuration and parameter choices
 def export_optimization_history():
     """
     Exports a placeholder optimization history (only contains the fixed best params).
@@ -249,13 +258,15 @@ def export_optimization_history():
     # Convert to dataframe
     history_df = pd.DataFrame(trials_data)
     
-    # Export to CSV
-    csv_path = os.path.join(model_output_dir, "optimization_history.csv")
+    # Export to CSV with "et_" prefix
+    csv_path = os.path.join(model_output_dir, "et_optimization_history.csv")
     history_df.to_csv(csv_path, index=False)
     print(f"✓ Optimization history exported to: {csv_path}")
     
     return history_df
 
+# Export summary metrics - comprehensive performance metrics in organized format
+# Use for: comparing metrics between targets and against other models
 def export_summary_metrics():
     """
     Exports all performance metrics in a structured format.
@@ -267,13 +278,15 @@ def export_summary_metrics():
         'Curvature': [rmse_curv, r2_curv, mae_curv, maxerr_curv]
     })
     
-    # Export to CSV
-    csv_path = os.path.join(model_output_dir, "performance_metrics.csv")
+    # Export to CSV with "et_" prefix
+    csv_path = os.path.join(model_output_dir, "et_performance_metrics.csv")
     metrics_df.to_csv(csv_path, index=False)
     print(f"✓ Performance metrics exported to: {csv_path}")
     
     return metrics_df
 
+# Export error distribution - detailed error statistics for deeper analysis
+# Use for: histograms showing error distributions and analyzing errors by curvature state
 def export_error_distribution():
     """
     Exports data for error distribution analysis.
@@ -291,13 +304,15 @@ def export_error_distribution():
         'Curvature_Active': df.iloc[test_idx]['Curvature_Active'].values
     })
     
-    # Export to CSV
-    csv_path = os.path.join(model_output_dir, "error_distribution.csv")
+    # Export to CSV with "et_" prefix
+    csv_path = os.path.join(model_output_dir, "et_error_distribution.csv")
     error_df.to_csv(csv_path, index=False)
     print(f"✓ Error distribution data exported to: {csv_path}")
     
     return error_df
 
+# Export model parameters - configuration and hyperparameters used
+# Use for: documenting model settings for reproducibility
 def export_model_parameters():
     """
     Exports model hyperparameters and configuration.
@@ -316,13 +331,15 @@ def export_model_parameters():
     # Convert to dataframe
     params_df = pd.DataFrame([model_params])
     
-    # Export to CSV
-    csv_path = os.path.join(model_output_dir, "model_parameters.csv")
+    # Export to CSV with "et_" prefix
+    csv_path = os.path.join(model_output_dir, "et_model_parameters.csv")
     params_df.to_csv(csv_path, index=False)
     print(f"✓ Model parameters exported to: {csv_path}")
     
     return params_df
 
+# Export raw feature data - original features with predictions for custom analyses
+# Use for: feature importance exploration and advanced visualizations
 def export_raw_feature_data():
     """
     Exports the raw feature data for test samples to enable custom analyses.
@@ -336,71 +353,31 @@ def export_raw_feature_data():
         test_features_df[f'{col_name}_True'] = y_test.iloc[:, col_idx].values
         test_features_df[f'{col_name}_Predicted'] = y_pred[:, col_idx]
     
-    # Export to CSV
-    csv_path = os.path.join(model_output_dir, "test_features_data.csv")
+    # Export to CSV with "et_" prefix
+    csv_path = os.path.join(model_output_dir, "et_test_features_data.csv")
     test_features_df.to_csv(csv_path, index=False)
     print(f"✓ Raw feature data exported to: {csv_path}")
     
     return test_features_df
 
-# Export all data to CSV files
+# === Export all data to CSV files ===
+# Model uses FFT-based features and engineered frequency bands as inputs
+# Features were scaled using MinMaxScaler (saved as feature_scaler.pkl)
+# Used GroupKFold cross-validation grouped by RunID
+# All CSV files are prefixed with "et_" for easier identification
 print("\nExporting data for external visualization and analysis:")
-export_prediction_data()
-export_feature_importance()
-export_optimization_history()
-export_summary_metrics()
-export_error_distribution()
-export_model_parameters()
-export_raw_feature_data()
+export_prediction_data()        # Performance evaluation and error analysis
+export_feature_importance()     # Understanding feature contributions
+export_optimization_history()   # Documentation of fixed hyperparameters
+export_summary_metrics()        # Structured performance metrics
+export_error_distribution()     # Detailed error analysis
+export_model_parameters()       # Model configuration
+export_raw_feature_data()       # Raw data with predictions for custom analysis
 
-# Create README file with overview of available data
-readme_content = f"""# ExtraTrees Model with Fixed Hyperparameters ({timestamp})
-
-## Model Performance Summary
-- Position RMSE: {rmse_pos:.2f} cm, R²: {r2_pos:.3f}
-- Curvature RMSE: {rmse_curv:.5f}, R²: {r2_curv:.3f}
-
-## Available CSV Files for Visualization:
-
-1. **prediction_data.csv**: Contains true and predicted values for both targets, along with absolute and relative errors.
-   - Use for scatter plots comparing true vs. predicted values
-   - Use for error analysis by run ID or curvature state
-
-2. **feature_importance.csv**: Feature importance values from the trained model.
-   - Use for bar charts showing most influential features
-
-3. **optimization_history.csv**: Contains the fixed hyperparameters used (no optimization performed).
-
-4. **performance_metrics.csv**: Summary metrics (RMSE, R², MAE, Max Error) for both targets.
-   - Use for comparison bar charts between metrics and targets
-
-5. **error_distribution.csv**: Detailed error distribution data.
-   - Use for histograms showing error distributions
-   - Use for analyzing errors by curvature state
-
-6. **model_parameters.csv**: Model configuration and fixed hyperparameters.
-   - Reference for model settings
-
-7. **test_features_data.csv**: Raw feature values for test samples with predictions.
-   - Use for custom feature analysis and visualization
-
-## Fixed Hyperparameters
-```
-{json.dumps(best_params, indent=2)}
-```
-
-Author: Bipindra Rai
-Date: 26 April 2025
-"""
-
-# Write README file
-with open(os.path.join(model_output_dir, "README.md"), "w") as f:
-    f.write(readme_content)
-
-# Print summary
+# Print model performance summary 
 print("\n✅ Training complete with fixed hyperparameters")
 print(f"Best Parameters: {best_params}")
 print(f"Curvature RMSE: {rmse_curv:.5f}, R²: {r2_curv:.3f}")
 print(f"Position RMSE: {rmse_pos:.2f} cm, R²: {r2_pos:.3f}")
 print(f"\nAll data exported to CSVs in: {model_output_dir}")
-print(f"See README.md in that directory for details on available files.")
+print("CSV files contain comprehensive model data and can be used for visualization and analysis")
