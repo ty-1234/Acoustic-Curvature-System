@@ -154,9 +154,9 @@ mae_curv = mean_absolute_error(y_test.iloc[:, 1], y_pred[:, 1])
 maxerr_pos = max_error(y_test.iloc[:, 0], y_pred[:, 0])
 maxerr_curv = max_error(y_test.iloc[:, 1], y_pred[:, 1])
 
-# Create timestamped output directory
+# Use timestamped output directory in the correct location
 timestamp = datetime.now().strftime("%-I:%M%p").lower()
-model_output_dir = os.path.join(base_dir, "neural_network", "model_outputs", "extratrees", f"{timestamp}")
+model_output_dir = os.path.join(base_dir, "neural_network", "model_outputs", "extratrees", timestamp)
 os.makedirs(model_output_dir, exist_ok=True)
 
 # Save metrics to JSON
