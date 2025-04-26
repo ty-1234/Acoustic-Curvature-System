@@ -1,3 +1,14 @@
+"""
+ExtraTrees Regressor with Optuna Hyperparameter Optimization for Curvature Sensor
+
+This script trains a multi-output ExtraTrees regressor to predict both position and curvature 
+from FFT sensor data. It uses Optuna for Bayesian optimization of hyperparameters and 
+includes comprehensive evaluation metrics and visualization.
+
+Author: Bipindra Rai
+Date: 26 April 2025
+"""
+
 import os
 import sys
 import json
@@ -67,8 +78,19 @@ train_idx, test_idx = next(gkf.split(X_scaled, y, groups))
 X_train, X_test = X_scaled[train_idx], X_scaled[test_idx]
 y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
 
-# Define objective function for Optuna
 def objective(trial):
+    """
+    Optuna objective function for hyperparameter optimization.
+    
+    This function defines the search space for hyperparameters and evaluates model
+    performance using GroupKFold cross-validation, returning a combined error metric.
+    
+    Args:
+        trial: Optuna trial object that manages hyperparameter suggestions
+    
+    Returns:
+        float: Combined RMSE score (average of position and weighted curvature RMSE)
+    """
     # Define the hyperparameters to optimize
     params = {
         'n_estimators': trial.suggest_int('n_estimators', 50, 500),
@@ -184,79 +206,100 @@ with open(os.path.join(model_output_dir, "metrics.json"), "w") as f:
 joblib.dump(best_model, os.path.join(model_output_dir, "extratrees_optuna_model.pkl"))
 
 # Create visualizations
+def create_error_bar_chart():
+    """
+    Creates a bar chart comparing MAE and Max Error metrics for both targets.
+    """
+    labels = ['Position', 'Curvature']
+    mae_vals = [mae_pos, mae_curv]
+    maxerr_vals = [maxerr_pos, maxerr_curv]
 
-# 1. Bar chart for MAE and Max Error
-labels = ['Position', 'Curvature']
-mae_vals = [mae_pos, mae_curv]
-maxerr_vals = [maxerr_pos, maxerr_curv]
+    x = np.arange(len(labels))
+    width = 0.35
 
-x = np.arange(len(labels))
-width = 0.35
+    plt.figure(figsize=(8, 5))
+    plt.bar(x - width/2, mae_vals, width, label='MAE')
+    plt.bar(x + width/2, maxerr_vals, width, label='Max Error')
+    plt.ylabel('Error Value')
+    plt.title('MAE and Max Error for ExtraTrees (Optuna)')
+    plt.xticks(x, labels)
+    plt.legend()
+    plt.grid(axis='y', linestyle='--', alpha=0.6)
+    plt.tight_layout()
+    plt.savefig(os.path.join(model_output_dir, "extratree_error_summary.png"))
+    plt.close()
 
-plt.figure(figsize=(8, 5))
-plt.bar(x - width/2, mae_vals, width, label='MAE')
-plt.bar(x + width/2, maxerr_vals, width, label='Max Error')
-plt.ylabel('Error Value')
-plt.title('MAE and Max Error for ExtraTrees (Optuna)')
-plt.xticks(x, labels)
-plt.legend()
-plt.grid(axis='y', linestyle='--', alpha=0.6)
-plt.tight_layout()
-plt.savefig(os.path.join(model_output_dir, "extratree_error_summary.png"))
-plt.close()
+def create_position_error_histogram():
+    """
+    Creates a histogram of position prediction absolute errors.
+    """
+    abs_pos_error = np.abs(y_test.iloc[:, 0] - y_pred[:, 0])
+    plt.figure(figsize=(8, 4))
+    plt.hist(abs_pos_error, bins=20, edgecolor='black')
+    plt.xlabel('Absolute Position Error (cm)')
+    plt.ylabel('Frequency')
+    plt.title('Histogram of Position Errors')
+    plt.grid(axis='y', linestyle='--', alpha=0.6)
+    plt.tight_layout()
+    plt.savefig(os.path.join(model_output_dir, "extratree_position_error_hist.png"))
+    plt.close()
 
-# 2. Histogram of Absolute Position Error
-abs_pos_error = np.abs(y_test.iloc[:, 0] - y_pred[:, 0])
-plt.figure(figsize=(8, 4))
-plt.hist(abs_pos_error, bins=20, edgecolor='black')
-plt.xlabel('Absolute Position Error (cm)')
-plt.ylabel('Frequency')
-plt.title('Histogram of Position Errors')
-plt.grid(axis='y', linestyle='--', alpha=0.6)
-plt.tight_layout()
-plt.savefig(os.path.join(model_output_dir, "extratree_position_error_hist.png"))
-plt.close()
+def create_position_prediction_plot():
+    """
+    Creates a scatter plot comparing actual vs predicted position values.
+    """
+    plt.figure(figsize=(6, 6))
+    plt.scatter(y_test["Position_cm"], y_pred[:, 0], alpha=0.4)
+    plt.plot([-1, 5.5], [-1, 5.5], 'r--', label='Ideal')
+    plt.legend()
+    plt.xlim([-1, 5.5])
+    plt.ylim([-1, 5.5])
+    plt.title(f"Position Prediction (ExtraTrees+Optuna)\nRMSE = {rmse_pos:.2f} cm, R² = {r2_pos:.2f}")
+    plt.xlabel("True Position (cm)")
+    plt.ylabel("Predicted Position (cm)")
+    plt.grid(True)
+    plt.savefig(os.path.join(model_output_dir, "position_plot.png"))
+    plt.close()
 
-# 3. Position Predicted vs Actual
-plt.figure(figsize=(6, 6))
-plt.scatter(y_test["Position_cm"], y_pred[:, 0], alpha=0.4)
-plt.plot([-1, 5.5], [-1, 5.5], 'r--', label='Ideal')
-plt.legend()
-plt.xlim([-1, 5.5])
-plt.ylim([-1, 5.5])
-plt.title(f"Position Prediction (ExtraTrees+Optuna)\nRMSE = {rmse_pos:.2f} cm, R² = {r2_pos:.2f}")
-plt.xlabel("True Position (cm)")
-plt.ylabel("Predicted Position (cm)")
-plt.grid(True)
-plt.savefig(os.path.join(model_output_dir, "position_plot.png"))
-plt.close()
+def create_curvature_prediction_plot():
+    """
+    Creates a scatter plot comparing actual vs predicted curvature values.
+    """
+    plt.figure(figsize=(6, 6))
+    plt.scatter(y_test["Curvature_Label"], y_pred[:, 1], alpha=0.4)
+    plt.plot([0, 0.055], [0, 0.055], 'r--', label='Ideal')
+    plt.legend()
+    plt.xlim([0, 0.055])
+    plt.ylim([0, 0.055])
+    plt.title(f"Curvature Prediction (ExtraTrees+Optuna)\nRMSE = {rmse_curv:.5f}, R² = {r2_curv:.2f}")
+    plt.xlabel("True Curvature")
+    plt.ylabel("Predicted Curvature")
+    plt.grid(True)
+    plt.savefig(os.path.join(model_output_dir, "curvature_plot.png"))
+    plt.close()
 
-# 4. Curvature Predicted vs Actual
-plt.figure(figsize=(6, 6))
-plt.scatter(y_test["Curvature_Label"], y_pred[:, 1], alpha=0.4)
-plt.plot([0, 0.055], [0, 0.055], 'r--', label='Ideal')
-plt.legend()
-plt.xlim([0, 0.055])
-plt.ylim([0, 0.055])
-plt.title(f"Curvature Prediction (ExtraTrees+Optuna)\nRMSE = {rmse_curv:.5f}, R² = {r2_curv:.2f}")
-plt.xlabel("True Curvature")
-plt.ylabel("Predicted Curvature")
-plt.grid(True)
-plt.savefig(os.path.join(model_output_dir, "curvature_plot.png"))
-plt.close()
+def create_optimization_history_plot():
+    """
+    Creates a line plot showing the Optuna optimization history.
+    """
+    plt.figure(figsize=(10, 6))
+    optimization_values = [t.value for t in study.trials]
+    plt.plot(optimization_values, 'o-')
+    plt.axhline(y=study.best_value, color='r', linestyle='--', label=f'Best Score: {study.best_value:.4f}')
+    plt.title('Optuna Optimization History')
+    plt.xlabel('Trial')
+    plt.ylabel('Objective Value (Combined RMSE)')
+    plt.legend()
+    plt.grid(True)
+    plt.savefig(os.path.join(model_output_dir, "optimization_history.png"))
+    plt.close()
 
-# 5. Optuna optimization history
-plt.figure(figsize=(10, 6))
-optimization_values = [t.value for t in study.trials]
-plt.plot(optimization_values, 'o-')
-plt.axhline(y=study.best_value, color='r', linestyle='--', label=f'Best Score: {study.best_value:.4f}')
-plt.title('Optuna Optimization History')
-plt.xlabel('Trial')
-plt.ylabel('Objective Value (Combined RMSE)')
-plt.legend()
-plt.grid(True)
-plt.savefig(os.path.join(model_output_dir, "optimization_history.png"))
-plt.close()
+# Generate all visualization plots
+create_error_bar_chart()
+create_position_error_histogram()
+create_position_prediction_plot()
+create_curvature_prediction_plot()
+create_optimization_history_plot()
 
 # Print summary
 print("✅ Training complete with Optuna optimization")
