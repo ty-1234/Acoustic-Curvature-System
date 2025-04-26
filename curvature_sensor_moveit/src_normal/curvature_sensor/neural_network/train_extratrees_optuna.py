@@ -156,7 +156,7 @@ maxerr_curv = max_error(y_test.iloc[:, 1], y_pred[:, 1])
 
 # Create timestamped output directory
 timestamp = datetime.now().strftime("%-I:%M%p").lower()
-model_output_dir = os.path.join(base_dir, "models", f"extratrees_optuna_{timestamp}")
+model_output_dir = os.path.join(base_dir, "neural_network", "model_outputs", "extratrees", f"{timestamp}")
 os.makedirs(model_output_dir, exist_ok=True)
 
 # Save metrics to JSON
