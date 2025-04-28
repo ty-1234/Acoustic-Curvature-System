@@ -12,7 +12,7 @@ The orchestrator ensures proper sequencing and synchronization between component
 to maintain accurate and reliable predictions.
 
 Author: Bipindra Rai
-Date: 2025-04-20
+Date: 2025-04-28
 """
 
 import os
@@ -54,8 +54,8 @@ class Orchestrator:
             Path to the feature scaler file
         """
         # Set default paths
-        base_dir = os.path.dirname(os.path.abspath(__file__))  # get directory of current file
-        model_dir = os.path.join(base_dir, "model")  # singular "model" not "models"
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        model_dir = os.path.join(base_dir, "model")
         
         self.model_path = model_path or os.path.join(model_dir, "extratrees_optuna_model.pkl")
         self.scaler_path = scaler_path or os.path.join(model_dir, "feature_scaler.pkl")
@@ -99,35 +99,12 @@ class Orchestrator:
             logger.info(f"Loading model from {self.model_path}")
             self.model = joblib.load(self.model_path)
             
-            # Save feature information for troubleshooting
-            if hasattr(self.model, 'feature_names_in_'):
-                logger.info(f"Model feature names: {self.model.feature_names_in_}")
-            elif hasattr(self.model, 'estimators_'):
-                est = self.model.estimators_[0]
-                if hasattr(est, 'feature_names_in_'):
-                    logger.info(f"Model feature names: {est.feature_names_in_}")
-            
             logger.info(f"Loading scaler from {self.scaler_path}")
             self.scaler = joblib.load(self.scaler_path)
             
             logger.info(f"Scaler expects {self.scaler.n_features_in_} features")
             if hasattr(self.scaler, 'feature_names_in_'):
                 logger.info(f"Scaler feature names: {self.scaler.feature_names_in_}")
-                
-                # Save feature names to a file for troubleshooting
-                debug_dir = os.path.join(os.path.dirname(self.model_path), "debug")
-                os.makedirs(debug_dir, exist_ok=True)
-                debug_file = os.path.join(debug_dir, "model_features.txt")
-                
-                with open(debug_file, 'w') as f:
-                    f.write(f"Model loaded from: {self.model_path}\n")
-                    f.write(f"Scaler loaded from: {self.scaler_path}\n")
-                    f.write(f"Expected feature count: {self.scaler.n_features_in_}\n\n")
-                    f.write("Feature names:\n")
-                    for i, name in enumerate(self.scaler.feature_names_in_):
-                        f.write(f"{i+1}. {name}\n")
-                
-                logger.info(f"Saved feature details to {debug_file}")
             
             return True
             
@@ -268,8 +245,6 @@ class Orchestrator:
         
         Continuously gets features, makes predictions, and updates GUI.
         """
-        logger.info("Prediction loop started")
-        
         # Give feature extraction time to start producing data
         time.sleep(2.0)
         
@@ -316,8 +291,6 @@ class Orchestrator:
             except Exception as e:
                 logger.error(f"Error in prediction loop: {e}")
                 time.sleep(0.1)  # Sleep longer on error
-        
-        logger.info("Prediction loop stopped")
     
     def run(self):
         """Run the system until interrupted by user."""
@@ -326,16 +299,11 @@ class Orchestrator:
             return False
         
         try:
+            logger.info("System running. Starting GUI on main thread...")
+            
             # Run GUI on the main thread - this will block until GUI is closed
-            if self.gui:
-                self.gui.start()
-                print("\n" + "="*50)
-                print("GUI IS NOW RUNNING - LOOK FOR THE WINDOW ON YOUR SCREEN")
-                print("The program will continue running until you close the GUI window")
-                print("="*50 + "\n")
-            else:
-                logger.error("GUI object is None, cannot start!")
-                
+            self.gui.start()
+            
         except KeyboardInterrupt:
             logger.info("User interrupted execution")
         except Exception as e:

@@ -145,20 +145,9 @@ class RealTimeFeatureExtractor:
     def audio_callback(self, indata, frames, time_info, status):
         """
         Callback function for audio stream processing.
-        
-        Parameters:
-        -----------
-        indata : ndarray
-            Input audio data
-        frames : int
-            Number of frames
-        time_info : dict
-            Time information
-        status : int
-            Status flags
         """
-        if status:
-            logger.warning(f"Audio stream status: {status}")
+        if status and status.input_overflow:
+            logger.warning("Audio input overflow")
             
         # Add audio data to buffer
         self.audio_buffer.extend(indata[:, 0])
@@ -168,8 +157,6 @@ class RealTimeFeatureExtractor:
         Process audio data from buffer and extract features.
         This runs in a separate thread.
         """
-        logger.info("Feature extraction thread started")
-        
         while self.is_running:
             # Process data if enough samples are available
             if len(self.audio_buffer) >= self.window_size:
@@ -205,6 +192,22 @@ class RealTimeFeatureExtractor:
         # Clear any existing data
         self.audio_buffer.clear()
         self.feature_buffer.clear()
+        
+        # Get and print microphone information before starting the stream
+        try:
+            devices = sd.query_devices()
+            default_input = sd.default.device[0]
+            device_info = devices[default_input]
+            
+            logger.info("")
+            logger.info("=" * 70)
+            logger.info(f"🎤  MICROPHONE: {device_info['name']}")
+            logger.info(f"🔊  SAMPLE RATE: {int(device_info['default_samplerate'])} Hz")
+            logger.info(f"🆔  DEVICE ID: {default_input}")
+            logger.info("=" * 70)
+            logger.info("")
+        except Exception as e:
+            logger.warning(f"🎤  Could not query audio device information: {e}")
         
         # Start audio stream
         self.stream = sd.InputStream(

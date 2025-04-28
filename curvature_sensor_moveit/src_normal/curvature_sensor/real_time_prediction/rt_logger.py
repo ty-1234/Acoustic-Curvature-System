@@ -132,7 +132,6 @@ class PredictionLogger:
                     # Update last logged time
                     self.last_logged_time = now
                     
-                    # Updated to show mm^-1 instead of m^-1
                     logger.info(f"Logged prediction - Curvature: {curvature:.6f} mm^-1, Position: {position:.2f} cm")
                     return True
                     
@@ -141,7 +140,6 @@ class PredictionLogger:
                     return False
         else:
             # Skip logging due to interval
-            logger.debug(f"Skipping log (interval not reached): {time_since_last:.2f}s < {self.log_interval:.2f}s")
             return False
     
     def close(self):
@@ -224,28 +222,18 @@ if __name__ == "__main__":
     init_logger(
         output_dir=test_dir,
         filename="test_predictions.csv",
-        log_interval=0.5,  # Log every half second
-        create_new=True    # Create a new file
+        log_interval=0.5,
+        create_new=True
     )
     
     # Log some test data
     print("Logging test predictions...")
     
     try:
-        # Log 10 sample predictions
         for i in range(10):
-            # Generate some test values
-            curvature = 5.0 + (i * 0.1)   # 5.0, 5.1, 5.2, ...
-            position = 2.0 + (i * 0.2)    # 2.0, 2.2, 2.4, ...
-            
-            # Log the prediction
-            log_data(curvature, position)
-            
-            # Sleep to simulate real-time operation
-            time.sleep(0.25)  # This will test the interval logic
-    
+            log_data(5.0 + (i * 0.1), 2.0 + (i * 0.2))
+            time.sleep(0.25)
     finally:
-        # Ensure logger is closed properly
         close_logger()
         
     print(f"Test complete. Log file created at: {os.path.join(test_dir, 'test_predictions.csv')}")

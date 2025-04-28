@@ -44,8 +44,6 @@ def predict(model, features):
             position, curvature = predictions[0]
         else:
             position, curvature = predictions
-            
-        logger.debug(f"Prediction made: position={position:.2f}, curvature={curvature:.4f}")
         
         return position, curvature
         
