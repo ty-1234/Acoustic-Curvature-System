@@ -40,12 +40,16 @@ class PredictionGUI:
         self.current_position = -1.0  # -1 indicates inactive
         self.is_active = False
         
+        # Microphone information
+        self.mic_name = "Unknown"
+        
         # Initialize GUI components
         self.root = None
         self.label_title = None
         self.label_curvature = None
         self.label_position = None
         self.label_status = None
+        self.label_mic = None  # New label for microphone info
         self.frame_values = None
         
         # For window closing
@@ -79,6 +83,22 @@ class PredictionGUI:
             else:
                 self.is_active = is_active
     
+    def update_mic_info(self, mic_name):
+        """
+        Update the microphone information displayed in the GUI.
+        
+        Parameters:
+        -----------
+        mic_name : str
+            Name of the current microphone device
+        """
+        with self.update_lock:
+            self.mic_name = mic_name
+            
+            # Update the label if it exists
+            if hasattr(self, 'label_mic') and self.label_mic:
+                self.label_mic.config(text=f"🎤 Microphone: {self.mic_name}")
+    
     def _update_display(self):
         """
         Update the GUI labels with the latest values.
@@ -91,14 +111,14 @@ class PredictionGUI:
             curvature_str = f"{self.current_curvature:.4f}" if self.is_active else "N/A"
             position_str = f"{self.current_position:.1f}" if self.is_active else "N/A"
             
-            # Update the labels with blue text for better visibility
+            # Update the values with appropriate styling based on active state
             self.label_curvature.config(
                 text=f"Curvature: {curvature_str} mm⁻¹", 
-                fg="#0066CC" if self.is_active else "gray"  # Changed to blue when active
+                fg="#0066CC" if self.is_active else "gray"
             )
             self.label_position.config(
                 text=f"Position: {position_str} cm", 
-                fg="#0066CC" if self.is_active else "gray"  # Changed to blue when active
+                fg="#0066CC" if self.is_active else "gray"
             )
             
             # Update status indicator
@@ -125,7 +145,7 @@ class PredictionGUI:
         # Create main window
         self.root = tk.Tk()
         self.root.title("Curvature Sensor Predictions")
-        self.root.geometry("400x300")
+        self.root.geometry("400x350")  # Increased height for mic info
         self.root.resizable(False, False)
         
         # Set window icon (if available)
@@ -146,38 +166,47 @@ class PredictionGUI:
         )
         self.label_title.pack()
         
+        # Create microphone info label with consistent styling
+        self.label_mic = tk.Label(
+            self.root,
+            text=f"🎤 Microphone: {self.mic_name}",
+            font=("Helvetica", 11, "bold"),
+            fg="#0066CC",
+            pady=8,
+            bg=self.root.cget('bg')
+        )
+        self.label_mic.pack()
+        
         # Create status indicator
         self.label_status = tk.Label(
             self.root, 
             text="INACTIVE",
             font=("Helvetica", 12, "bold"),
             fg="red",
-            pady=10
+            pady=5
         )
         self.label_status.pack()
         
-        # Create frame for values with a light background for better contrast
-        self.frame_values = tk.Frame(self.root, pady=20, bg="#F0F8FF")  # Light blue background
+        # Create frame for values with appropriate padding
+        self.frame_values = tk.Frame(self.root, pady=20)
         self.frame_values.pack(fill=tk.X, padx=20)
         
-        # Create value labels with larger font and blue text
+        # Create value labels with high visibility styling
         self.label_curvature = tk.Label(
             self.frame_values, 
             text="Curvature: N/A mm⁻¹",
-            font=("Helvetica", 14, "bold"),  # Added bold for better visibility
+            font=("Helvetica", 14, "bold"),
             pady=10,
-            bg="#F0F8FF",  # Match frame background
-            fg="#0066CC"   # Blue text
+            fg="#0066CC"  # Blue text for better visibility
         )
         self.label_curvature.pack()
-        
+
         self.label_position = tk.Label(
             self.frame_values, 
             text="Position: N/A cm",
-            font=("Helvetica", 14, "bold"),  # Added bold for better visibility
+            font=("Helvetica", 14, "bold"),
             pady=10,
-            bg="#F0F8FF",  # Match frame background
-            fg="#0066CC"   # Blue text
+            fg="#0066CC"  # Blue text for better visibility
         )
         self.label_position.pack()
         

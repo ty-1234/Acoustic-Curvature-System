@@ -193,7 +193,7 @@ class RealTimeFeatureExtractor:
         self.audio_buffer.clear()
         self.feature_buffer.clear()
         
-        # Get and print microphone information before starting the stream
+        # Display microphone information for monitoring
         try:
             devices = sd.query_devices()
             default_input = sd.default.device[0]
@@ -287,10 +287,10 @@ class RealTimeFeatureExtractor:
         if not features:
             return None
         
-        # Print scaler information only once (at DEBUG level)
-        if scaler and not hasattr(self, '_debug_printed'):
+        # Optional feature validation logging (development purposes)
+        if scaler and not hasattr(self, '_logging_done'):
             try:
-                self._debug_printed = True
+                self._logging_done = True
                 logger.debug(f"Scaler expects {scaler.n_features_in_} features")
                 if hasattr(scaler, 'feature_names_in_'):
                     logger.debug(f"Expected feature names: {scaler.feature_names_in_}")

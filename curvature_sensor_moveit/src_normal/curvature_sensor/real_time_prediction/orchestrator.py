@@ -22,6 +22,7 @@ import logging
 import signal
 import sys
 import joblib
+import sounddevice as sd  
 
 # Import component modules
 from rt_frequency_gen import RealTimeFrequencyGenerator
@@ -175,6 +176,22 @@ class Orchestrator:
                 return False
                 
             logger.info("Feature extraction thread started")
+            
+            # Get microphone information for the GUI
+            try:
+                devices = sd.query_devices()
+                default_input = sd.default.device[0]
+                device_info = devices[default_input]
+                mic_name = device_info['name']
+                
+                # Update GUI with microphone info
+                if self.gui:
+                    self.gui.update_mic_info(mic_name)
+            except Exception as e:
+                logger.warning(f"Could not get microphone info for GUI: {e}")
+                # Use a fallback
+                if self.gui:
+                    self.gui.update_mic_info("Default Microphone")
             
             # Set is_running flag to true after all components have started
             self.is_running = True
