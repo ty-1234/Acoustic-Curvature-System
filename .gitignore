@@ -13,7 +13,7 @@ __pycache__/
 # Explicitly ignore these specific __pycache__ directories
 curvature_sensor_moveit/src_normal/curvature_sensor/scripts/__pycache__/
 curvature_sensor_moveit/src_normal/computervision_module/__pycache__/
-
+curvature_sensor_moveit/src_normal/curvature_sensor/real_time_prediction/__pycache__
 # Distribution / packaging
 dist/
 build/
