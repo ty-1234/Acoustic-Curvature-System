@@ -167,7 +167,6 @@ class Orchestrator:
             if not self.freq_generator.start():
                 logger.error("Failed to start frequency generator")
                 return False
-            logger.info("✅ Frequency generator started successfully")
             
             # Step 5: Start feature extraction
             logger.info("Starting feature extraction...")

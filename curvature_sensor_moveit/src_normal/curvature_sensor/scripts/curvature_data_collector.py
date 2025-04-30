@@ -27,16 +27,70 @@ from curvature_fft_utils import extract_fft_features
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
 
+def check_microphone():
+    """
+    Validates that a microphone is available and functioning.
+    Displays information about the selected microphone.
+    
+    Returns:
+        bool: True if a valid microphone is detected, False otherwise.
+    """
+    try:
+        # Display microphone information for monitoring
+        devices = sd.query_devices()
+        default_input = sd.default.device[0]
+        device_info = devices[default_input]
+        
+        logging.info("")
+        logging.info("=" * 70)
+        logging.info(f"🎤  MICROPHONE: {device_info['name']}")
+        logging.info(f"🔊  SAMPLE RATE: {int(device_info['default_samplerate'])} Hz")
+        logging.info(f"🆔  DEVICE ID: {default_input}")
+        logging.info("=" * 70)
+        logging.info("")
+        
+        # Verify the device has input channels
+        if device_info['max_input_channels'] < 1:
+            logging.error("❌ Selected device has no input channels.")
+            return False
+        
+        # Optional: Record a short test sample to verify signal
+        duration = 0.5  # seconds
+        logging.info("🔊 Testing microphone with a short recording...")
+        test_recording = sd.rec(
+            int(duration * 22050), 
+            samplerate=22050, 
+            channels=1, 
+            blocking=True
+        )
+        
+        # Check if recording contains only silence
+        if np.abs(test_recording).max() < 0.01:
+            logging.warning("⚠️ Very low audio levels detected. Check microphone connection and volume.")
+            
+        return True
+        
+    except Exception as e:
+        logging.error(f"❌ Error accessing microphone: {e}")
+        return False
+
+
 def main():
     """
     Main function that handles user input, audio recording, and data processing.
     
     The function performs the following steps:
-    1. Prompts the user for the radius of curvature of the test object
-    2. Sets up audio recording parameters and buffers
-    3. Records audio data and processes it using FFT
-    4. Saves the processed data to a CSV file
+    1. Verifies microphone availability and functionality
+    2. Prompts the user for the radius of curvature of the test object
+    3. Sets up audio recording parameters and buffers
+    4. Records audio data and processes it using FFT
+    5. Saves the processed data to a CSV file
     """
+    # ===== Verify Microphone Availability =====
+    if not check_microphone():
+        logging.error("❌ Cannot proceed without a working microphone.")
+        return
+    
     # ===== User Input for Radius =====
     while True:
         try:

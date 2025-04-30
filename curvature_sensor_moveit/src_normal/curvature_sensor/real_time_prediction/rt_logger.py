@@ -34,7 +34,7 @@ class PredictionLogger:
         Parameters:
         -----------
         output_dir : str or None
-            Directory to save the log file (creates 'logs' dir if None)
+            Directory to save the log file (creates 'prediction_logs' dir if None)
         filename : str
             Name of the CSV log file
         log_interval : float
@@ -44,7 +44,7 @@ class PredictionLogger:
         """
         # Set up output directory
         if output_dir is None:
-            self.output_dir = os.path.join(os.path.dirname(__file__), "logs")
+            self.output_dir = os.path.join(os.path.dirname(__file__), "prediction_logs")
         else:
             self.output_dir = output_dir
             
