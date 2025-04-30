@@ -60,9 +60,8 @@ def main():
     print(f"Generating multi-tone signal for frequencies: {frequencies}")
     multi_tone_signal = generate_multi_tone(frequencies, duration, sample_rate)
 
-    # Get the directory where main.py is located
-    main_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    filename = os.path.join(main_dir, f"{duration}s.wav")
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    filename = os.path.join(script_dir, f"{duration}s.wav")
 
     wav.write(filename, sample_rate, multi_tone_signal)
     print(f"✔ Sound wave saved as '{filename}'")

@@ -16,10 +16,9 @@ import sys
 import importlib
 import importlib.util
 
-# Add the scripts directory to the Python path for module resolution
-scripts_dir = os.path.join(os.path.dirname(__file__), "scripts")
-if scripts_dir not in sys.path:
-    sys.path.append(scripts_dir)
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if parent_dir not in sys.path:
+    sys.path.append(parent_dir)
 
 def main():
     """
@@ -88,8 +87,8 @@ def main():
         try:
             # Dynamically import the csv_merger module
             csv_merger = importlib.import_module("csv_merger")
-            raw_dir = os.path.join(os.path.dirname(__file__), "csv_data", "raw")
-            merged_dir = os.path.join(os.path.dirname(__file__), "csv_data", "merged")
+            raw_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "csv_data", "raw")
+            merged_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "csv_data", "merged")
 
             # Check if the raw directory exists
             if not os.path.exists(raw_dir):
@@ -135,7 +134,7 @@ def main():
             # So we need to run the code it would execute if called directly
             
             # Check if the merged directory exists and has files
-            merged_dir = os.path.join(os.path.dirname(__file__), "csv_data", "merged")
+            merged_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "csv_data", "merged")
             if not os.path.exists(merged_dir):
                 print(f"⚠️ Merged directory not found: {merged_dir}")
                 return
@@ -164,7 +163,7 @@ def main():
             # Merge and save
             if frames:
                 merged_df = all_merger.pd.concat(frames, ignore_index=True)
-                output_file = os.path.join(os.path.dirname(__file__), "csv_data", "combined_dataset.csv")
+                output_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), "csv_data", "combined_dataset.csv")
                 merged_df.to_csv(output_file, index=False)
                 print(f"✅ Combined dataset saved to: {output_file} ({len(merged_df)} rows)")
             else:
@@ -178,7 +177,7 @@ def main():
     elif choice == 6:
         try:
             # Dynamically import the preprocess_training_features module
-            module_path = os.path.join(scripts_dir, "preprocess_training_features")
+            module_path = os.path.join(os.path.dirname(__file__), "preprocess_training_features")
             spec = importlib.util.spec_from_file_location("preprocess_training_features", f"{module_path}.py")
             preprocess_training_features = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(preprocess_training_features)

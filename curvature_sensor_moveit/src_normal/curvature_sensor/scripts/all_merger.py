@@ -4,8 +4,9 @@ import re
 from glob import glob
 
 # === Configuration ===
-input_folder = "csv_data/merged"   # Changed from "csv_data/raw"
-output_file = "csv_data/combined_dataset.csv"
+base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+input_folder = os.path.join(base_dir, "csv_data/merged")
+output_file = os.path.join(base_dir, "csv_data/combined_dataset.csv")
 os.makedirs(os.path.dirname(output_file), exist_ok=True)
 
 # === Helper Function: Extract curvature and run_id ===
