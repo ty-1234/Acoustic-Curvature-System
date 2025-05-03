@@ -37,21 +37,22 @@ def process_curvature_data():
         try:
             df = pd.read_csv(input_file)
             
-            # Verify this is an FFT data file with required columns
+            # Verify this is an FFT data file
             fft_cols = [col for col in df.columns if col.startswith("FFT_")]
-            if not fft_cols:
-                print(f"⚠️ Skipping {filename}: Not a valid FFT data file (no FFT columns)")
-                continue
-                
-            # Check if Position_cm exists
-            if "Position_cm" not in df.columns:
-                print(f"⚠️ Skipping {filename}: Missing Position_cm column")
+            if not fft_cols or "Section" not in df.columns:
+                print(f"⚠️ Skipping {filename}: Not a valid FFT data file")
                 continue
                 
             # === Determine if curvature is being applied ===
-            # Consider position values that are not NaN as active curvature
-            df["Curvature_Active"] = df["Position_cm"].notna().astype(int)
+            df["Curvature_Active"] = df["Section"].notna().astype(int)
             
+            # === Clean and convert Position ===
+            # Extract numeric value from Section if it contains "cm"
+            if df["Section"].dtype == 'object':
+                df["Position_cm"] = df["Section"].str.extract(r"(\d+\.?\d*)").astype(float)
+            else:
+                df["Position_cm"] = df["Section"]
+                
             # === FFT Feature Engineering ===
             feature_set = pd.DataFrame()
             feature_set[fft_cols] = df[fft_cols]
@@ -79,9 +80,10 @@ def process_curvature_data():
             # FFT peak index feature
             feature_set["FFT_Peak_Index"] = df[fft_cols].idxmax(axis=1).str.extract(r"(\d+)").astype(int)
             
-            # Add metadata
+            # Add metadata and extract curvature information from filename
             feature_set["Position_cm"] = df["Position_cm"]
             feature_set["Timestamp"] = df["Timestamp"]
+            feature_set["Section"] = df["Section"]
             feature_set["Curvature_Active"] = df["Curvature_Active"]
             
             # Extract curvature value from filename (assuming format like "merged_0_05[test 1].csv")

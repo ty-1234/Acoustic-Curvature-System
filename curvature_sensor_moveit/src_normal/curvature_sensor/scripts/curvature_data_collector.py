@@ -94,10 +94,13 @@ def main():
     # ===== User Input for Radius =====
     while True:
         try:
-            radius_value = float(input("Enter the radius of curvature of your test object (in mm): "))
-            if radius_value <= 0:
+            radius_value_cm = float(input("Enter the radius of curvature of your test object (in cm): "))
+            if radius_value_cm <= 0:
                 # Radius must be positive for physical validity
                 raise ValueError("Radius must be a positive number.")
+            
+            # Convert from cm to mm for internal calculations
+            radius_value = radius_value_cm * 10  # 1 cm = 10 mm
             break
         except ValueError as e:
             logging.error(f"Invalid input: {e}")
@@ -107,13 +110,13 @@ def main():
     # Format the curvature value for filename (replace decimal point with underscore)
     curvature_str = str(curvature_value).replace(".", "_")
 
-    # Set up the output directory path relative to the script location
-    output_dir = os.path.join(os.path.dirname(__file__), "..", "csv_data", "raw")
+    # Set up the output directory path relative to the project root
+    output_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "csv_data", "raw")
     output_filename = f"raw_audio_{curvature_str}.csv"
     output_path = os.path.join(output_dir, output_filename)
 
     # Log the input parameters and output path
-    logging.info(f"📐 Radius: {radius_value} mm")
+    logging.info(f"📐 Radius: {radius_value_cm} cm ({radius_value} mm)")
     logging.info(f"📐 Curvature: {curvature_value} mm⁻¹")
     logging.info(f"💾 Output path: {output_path}")
 
