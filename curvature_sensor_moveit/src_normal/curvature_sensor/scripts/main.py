@@ -32,7 +32,7 @@ def main():
     print("1. Generate WAV (2000hz_wav_creator.py)")
     print("2. Collect Data (curvature_data_collector.py)")
     print("3. ROS Control (curvature_ros.py)")
-    print("4. Sync Robot and Audio CSV Files (csv_merger.py)")
+    print("4. Sync Robot and Audio CSV Files (csv_sync.py)")
     print("5. Normalize Data (baseline_norm.py)")
     print("6. Preprocess Data (preprocess_training_features.py)")
     print("═════════════════════════════════════════")
@@ -96,13 +96,13 @@ def main():
     # Task 4: Merge CSV files
     elif choice == 4:
         try:
-            # Dynamically import the csv_merger module and execute its main function
-            import csv_merger
-            csv_merger.main()  # Call the main function of csv_merger.py
+            # Dynamically import the csv_sync module and execute its main function
+            csv_sync = importlib.import_module("csv_sync")
+            csv_sync.main()  # Call the main function of csv_sync.py
         except ImportError as e:
-            print(f"❌ Error: {e}. Ensure 'csv_merger.py' exists in the 'scripts' directory.")
+            print(f"❌ Error: {e}. Ensure 'csv_sync.py' exists in the 'scripts' directory.")
         except Exception as e:
-            print(f"❌ Error while running csv_merger: {e}")
+            print(f"❌ Error while running csv_sync: {e}")
 
     # Task 5: Normalize data
     elif choice == 5:

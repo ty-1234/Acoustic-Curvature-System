@@ -46,11 +46,14 @@ def main():
             # Compute mean FFT for baseline
             baseline_means = baseline_df.mean()
             
-            # Normalize FFT columns and overwrite original values
+            # Normalize FFT columns and replace the original values
             normalized = df[fft_cols] / baseline_means
             
-            # Directly replace original FFT columns with normalized values
-            df[fft_cols] = normalized
+            # Update the FFT columns with normalized values and rename them with _Norm suffix
+            for col in fft_cols:
+                df[col] = normalized[col]
+                # Rename the column to include _Norm suffix
+                df = df.rename(columns={col: f"{col}_Norm"})
             
             # Save output to the normalisation directory
             output_name = os.path.join(output_dir, f"normalized_{os.path.basename(filepath)}")
