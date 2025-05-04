@@ -1,2 +1,0 @@
-trial_number,value,n_estimators,max_depth,min_samples_split,min_samples_leaf,max_features,bootstrap
-0,0,443,15,7,5,,True

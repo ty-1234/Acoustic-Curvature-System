@@ -1,2 +1,0 @@
-kernel,normalize_y,feature_count,total_samples,feature_list,timestamp,model_type
-"RationalQuadratic(alpha=0.0308, length_scale=0.249) + WhiteKernel(noise_level=1e-05)",True,16,3709,"['FFT_200Hz', 'FFT_400Hz', 'FFT_600Hz', 'FFT_800Hz', 'FFT_1000Hz', 'FFT_1200Hz', 'FFT_1400Hz', 'FFT_1600Hz', 'FFT_1800Hz', 'FFT_2000Hz', 'FFT_Mean', 'FFT_Std', 'FFT_Min', 'FFT_Max', 'FFT_Range', 'FFT_Peak_Index']",8:03pm,GaussianProcessRegressor
