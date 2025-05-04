@@ -1,31 +1,65 @@
 import csv
+import os
+import glob
 
-def count_curvature_active(csv_file_path):
-    count_0 = 0
-    count_1 = 0
+def count_curvature_active(directory_path):
+    total_count_0 = 0
+    total_count_1 = 0
+    processed_files = 0
+    error_files = 0
+    
+    # Get all preprocessed CSV files in the directory
+    csv_files = glob.glob(os.path.join(directory_path, "preprocessed_*.csv"))
+    
+    if not csv_files:
+        print(f"No preprocessed CSV files found in {directory_path}")
+        return
+    
+    for csv_file_path in csv_files:
+        file_count_0 = 0
+        file_count_1 = 0
+        file_name = os.path.basename(csv_file_path)
+        
+        try:
+            with open(csv_file_path, mode='r') as file:
+                reader = csv.DictReader(file)
+                if 'Curvature_Active' not in reader.fieldnames:
+                    print(f"Error: 'Curvature_Active' column not found in {file_name}")
+                    error_files += 1
+                    continue
 
-    try:
-        with open(csv_file_path, mode='r') as file:
-            reader = csv.DictReader(file)
-            if 'Curvature_Active' not in reader.fieldnames:
-                print("Error: 'Curvature_Active' column not found in the CSV file.")
-                return
+                for row in reader:
+                    value = row['Curvature_Active']
+                    if value == '0':
+                        file_count_0 += 1
+                        total_count_0 += 1
+                    elif value == '1':
+                        file_count_1 += 1
+                        total_count_1 += 1
+            
+            processed_files += 1
+            print(f"File: {file_name}")
+            print(f"  Count of 0's: {file_count_0}")
+            print(f"  Count of 1's: {file_count_1}")
+            print(f"  Total rows: {file_count_0 + file_count_1}")
+            print("-----------------------------------")
 
-            for row in reader:
-                value = row['Curvature_Active']
-                if value == '0':
-                    count_0 += 1
-                elif value == '1':
-                    count_1 += 1
+        except FileNotFoundError:
+            print(f"Error: File not found at {csv_file_path}")
+            error_files += 1
+        except Exception as e:
+            print(f"An error occurred with {file_name}: {e}")
+            error_files += 1
 
-        print(f"Count of 0's: {count_0}")
-        print(f"Count of 1's: {count_1}")
+    print("\n=== SUMMARY ===")
+    print(f"Total files processed: {processed_files}")
+    print(f"Files with errors: {error_files}")
+    print(f"Total count of 0's across all files: {total_count_0}")
+    print(f"Total count of 1's across all files: {total_count_1}")
+    print(f"Total rows processed: {total_count_0 + total_count_1}")
+    if (total_count_0 + total_count_1) > 0:
+        print(f"Percentage of 1's: {(total_count_1 / (total_count_0 + total_count_1)) * 100:.2f}%")
 
-    except FileNotFoundError:
-        print(f"Error: File not found at {csv_file_path}")
-    except Exception as e:
-        print(f"An error occurred: {e}")
-
-# Example usage
-csv_file_path = 'curvature_sensor_moveit/src_normal/curvature_sensor/csv_data/preprocessed/preprocessed_training_dataset.csv'  # Replace with the actual path to your CSV file
-count_curvature_active(csv_file_path)
+# Get the directory of the current script
+current_dir = os.path.dirname(os.path.abspath(__file__))
+count_curvature_active(current_dir)
