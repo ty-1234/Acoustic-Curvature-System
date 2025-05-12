@@ -177,7 +177,9 @@ def main():
         raise ValueError("No contours found in the selected region. Try selecting a different area.")
 
     # Step 6: Estimate the curvature of the largest contour
-    points, curvatures = estimate_curvature(contour, window=5)
+    # Try a larger window, e.g., 15, 20, 25, 30 or more.
+    # The optimal value will depend on the scale of your object in the image and contour point density.
+    points, curvatures = estimate_curvature(contour, window=20) # Example: changed to 20
 
     # Step 7: Convert curvature from pixels^-1 to meters^-1
     image_width_px = image.shape[1]
