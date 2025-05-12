@@ -23,75 +23,7 @@ TIMESTAMP_COLUMN = 'Timestamp'
 FEATURE_COLUMNS = FFT_COLUMNS + [POSITION_COLUMN]
 
 # --- Function: process_data_for_discrete_extraction (Noise/Segment Removal) ---
-# (This is the same function from your RQ_GPR_train.py script)
-def process_data_for_discrete_extraction(df_original: pd.DataFrame, round_dp: int = 4) -> pd.DataFrame:
-    df = df_original.copy()
-    if df.empty: return df_original
-    try:
-        df['timestamp_dt'] = pd.to_datetime(df[TIMESTAMP_COLUMN])
-    except Exception as e:
-        print(f"    Error converting '{TIMESTAMP_COLUMN}' to datetime: {e}.")
-        return df_original
-    
-    if not df.empty:
-        df['time_seconds'] = (df['timestamp_dt'] - df['timestamp_dt'].iloc[0]).dt.total_seconds()
-    else:
-        return df_original
-
-    if ACTIVITY_COLUMN not in df.columns:
-        print(f"    '{ACTIVITY_COLUMN}' not found. Cannot perform discrete extraction.")
-        return df_original
-
-    active_blocks_info = []
-    is_block_start_point = (df[ACTIVITY_COLUMN].diff() != 0)
-    block_id_series = is_block_start_point.cumsum()
-    
-    active_segments_grouped = df[df[ACTIVITY_COLUMN] == 1].groupby(block_id_series[df[ACTIVITY_COLUMN] == 1])
-    
-    for _, group_df in active_segments_grouped:
-        if not group_df.empty:
-            start_idx = group_df.index.min()
-            end_idx = group_df.index.max()
-            if start_idx in df_original.index and end_idx in df_original.index:
-                 active_blocks_info.append({
-                    'start': start_idx, 'end': end_idx,
-                    'original_curvature_at_start': df_original.loc[start_idx, TARGET_COLUMN],
-                })
-
-    indices_to_delete = []
-    for block_config in active_blocks_info:
-        block_start_idx, block_end_idx = block_config['start'], block_config['end']
-        if not (block_start_idx in df.index and block_end_idx in df.index and block_start_idx <= block_end_idx):
-            continue
-        
-        C_orig = block_config['original_curvature_at_start']
-        if POSITION_COLUMN in df_original.columns and POSITION_COLUMN in df.columns:
-            df.loc[block_start_idx : block_end_idx, POSITION_COLUMN] = df_original.loc[block_start_idx : block_end_idx, POSITION_COLUMN].values
-        df.loc[block_start_idx : block_end_idx, TARGET_COLUMN] = C_orig
-        
-        if block_start_idx > df.index.min():
-            time_at_block_start = df.loc[block_start_idx, 'time_seconds']
-            lookback_time = time_at_block_start - 1.0
-            indices_to_delete.extend(df[(df['time_seconds'] >= lookback_time) & (df['time_seconds'] < time_at_block_start) & (df.index < block_start_idx)].index.tolist())
-        
-        if block_end_idx in df.index : 
-            time_at_block_end = df.loc[block_end_idx, 'time_seconds']
-            last_second_start_time = time_at_block_end - 1.0
-            indices_to_delete.extend(df[(df.index >= block_start_idx) & (df.index <= block_end_idx) & (df['time_seconds'] > last_second_start_time) & (df['time_seconds'] <= time_at_block_end)].index.tolist())
-
-    if indices_to_delete:
-        unique_indices = sorted(list(set(idx for idx in indices_to_delete if idx in df.index)))
-        if unique_indices:
-            df.drop(index=unique_indices, inplace=True)
-            
-    if TARGET_COLUMN in df.columns and not df.empty:
-        threshold = 10**-(round_dp + 1)
-        df[ACTIVITY_COLUMN] = np.where(np.abs(df[TARGET_COLUMN]) > threshold, 1, 0)
-    elif df.empty and ACTIVITY_COLUMN in df.columns:
-        df[ACTIVITY_COLUMN] = pd.Series(dtype='int')
-    
-    df.drop(columns=['timestamp_dt', 'time_seconds'], inplace=True, errors='ignore')
-    return df
+# This function is REMOVED as noise_remover.py is responsible for this.
 
 # --- Function: Parse Filename for Group (Curvature Value for a specific test object) ---
 # (This is the same function from your RQ_GPR_train.py script)
@@ -117,64 +49,66 @@ def train_random_forest_for_selected_object(file_paths, target_test_object_num_s
     files_without_baseline = []
     generated_output_files = []
 
-    print(f"Starting Random Forest data preparation for {len(file_paths)} files for test object '[test {target_test_object_num_str}]'...")
+    print(f"Starting Random Forest data preparation for {len(file_paths)} files for test object '[test {target_test_object_num_str}]' (expecting pre-cleaned files from 'cleaned' directory)...")
 
     for file_path in file_paths: 
         base_filename = os.path.basename(file_path)
         print(f"\n  Processing file: {base_filename}")
         try:
-            raw_df_for_baseline = pd.read_csv(file_path) 
-            if raw_df_for_baseline.empty:
-                print(f"    Skipping empty raw file: {base_filename}")
+            # df_cleaned_input IS the file already processed by noise_remover.py
+            df_cleaned_input = pd.read_csv(file_path) 
+            if df_cleaned_input.empty:
+                print(f"    Skipping empty pre-cleaned file: {base_filename}")
                 files_without_baseline.append(f"{base_filename} (File was empty)")
                 continue
         except Exception as e:
-            print(f"    Error reading raw file {base_filename} for baseline: {e}. Skipping.")
+            print(f"    Error reading pre-cleaned file {base_filename}: {e}. Skipping.")
             files_without_baseline.append(f"{base_filename} (Read error: {e})")
             continue
 
+        # 1. Calculate Idle Baseline (from the pre-cleaned df_cleaned_input)
         idle_fft_baseline = None
-        if not all(col in raw_df_for_baseline.columns for col in [POSITION_COLUMN, ACTIVITY_COLUMN] + FFT_COLUMNS):
+        if not all(col in df_cleaned_input.columns for col in [POSITION_COLUMN, ACTIVITY_COLUMN] + FFT_COLUMNS):
             print(f"    Skipping {base_filename}: missing one or more required columns for baseline calculation.")
             files_without_baseline.append(f"{base_filename} (Missing required columns for baseline)")
             continue
             
-        first_pos_zero_indices = raw_df_for_baseline[raw_df_for_baseline[POSITION_COLUMN] == 0.0].index
+        first_pos_zero_indices = df_cleaned_input[df_cleaned_input[POSITION_COLUMN] == 0.0].index
         
         if not first_pos_zero_indices.empty:
             first_pos_zero_idx = first_pos_zero_indices[0]
-            idle_candidate_rows = raw_df_for_baseline[
-                (raw_df_for_baseline.index < first_pos_zero_idx) & 
-                (raw_df_for_baseline[ACTIVITY_COLUMN] == 0)
+            idle_candidate_rows = df_cleaned_input[
+                (df_cleaned_input.index < first_pos_zero_idx) & 
+                (df_cleaned_input[ACTIVITY_COLUMN] == 0)
             ]
             if not idle_candidate_rows.empty:
                 idle_fft_baseline = idle_candidate_rows[FFT_COLUMNS].mean().values 
-                print(f"    Calculated idle baseline from {len(idle_candidate_rows)} rows before first PosCM=0 for {base_filename}.")
+                print(f"    Calculated idle baseline from {len(idle_candidate_rows)} rows (from pre-cleaned file) for {base_filename}.")
                 successful_baseline_count += 1
             else:
-                print(f"    WARNING: No 'Curvature_Active == 0' rows found before first 'Position_cm == 0.0' in {base_filename}.")
-                files_without_baseline.append(f"{base_filename} (No CA=0 before first PosCM=0)")
+                print(f"    WARNING: In pre-cleaned file '{base_filename}', no 'Curvature_Active == 0' rows found before first 'Position_cm == 0.0'.")
+                files_without_baseline.append(f"{base_filename} (No CA=0 before first PosCM=0 in cleaned file)")
         else:
-            print(f"    WARNING: No 'Position_cm == 0.0' found in {base_filename}.")
-            files_without_baseline.append(f"{base_filename} (No PosCM=0 found)")
+            print(f"    WARNING: In pre-cleaned file '{base_filename}', no 'Position_cm == 0.0' found.")
+            files_without_baseline.append(f"{base_filename} (No PosCM=0 found in cleaned file)")
 
-        cleaned_df = process_data_for_discrete_extraction(raw_df_for_baseline.copy()) 
+        # THE CALL TO process_data_for_discrete_extraction IS REMOVED.
+        # We now directly use df_cleaned_input.
+        print(f"    Using pre-cleaned df shape for RF processing: {df_cleaned_input.shape}")
         
-        if cleaned_df.empty:
-            print(f"    Skipping {base_filename} after cleaning resulted in empty DataFrame.")
-            continue
-        print(f"    Cleaned df shape: {cleaned_df.shape}")
-
-        active_df = cleaned_df[cleaned_df[ACTIVITY_COLUMN] == 1].copy()
+        # Filter for Active Data from df_cleaned_input
+        active_df = df_cleaned_input[df_cleaned_input[ACTIVITY_COLUMN] == 1].copy()
         if active_df.empty:
-            print(f"    No active data in {base_filename} after cleaning & filtering. Skipping.")
+            print(f"    No active data in pre-cleaned file {base_filename} after filtering. Skipping.")
             continue
+        print(f"    Found {len(active_df)} active rows in pre-cleaned file.")
 
+        # Normalize FFT Features of Active Data (Subtraction)
         if idle_fft_baseline is not None and not active_df.empty:
             active_df.loc[:, FFT_COLUMNS] = active_df[FFT_COLUMNS].values - idle_fft_baseline
             print(f"    Normalized {len(active_df)} active rows using baseline subtraction.")
         elif not active_df.empty:
-            print(f"    Active data for {base_filename} not baseline-subtracted (no suitable idle baseline).")
+            print(f"    Active data for {base_filename} not baseline-subtracted (no suitable idle baseline was found from pre-cleaned file).")
         
         if active_df.empty:
             continue 
