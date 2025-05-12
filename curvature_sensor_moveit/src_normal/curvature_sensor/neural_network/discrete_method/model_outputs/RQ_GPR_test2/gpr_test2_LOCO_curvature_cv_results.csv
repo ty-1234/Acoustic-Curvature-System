@@ -1,0 +1,6 @@
+fold,tested_group,mse,mae,r2,fitting_time_s,learned_kernel
+1,0.005,0.0005411004819577232,0.021084580162358632,-7.192459091509164e+32,426.7116208076477,"1.09**2 * RationalQuadratic(alpha=0.481, length_scale=1.13) + WhiteKernel(noise_level=1e-05)"
+2,0.007142,0.00024045789942482568,0.013022678050470362,0.0,486.7540349960327,"1.01**2 * RationalQuadratic(alpha=0.952, length_scale=1.03) + WhiteKernel(noise_level=1e-05)"
+3,0.01,0.00012983102904374176,0.008956627336074848,-4.314375963162652e+31,529.4082341194153,"1.05**2 * RationalQuadratic(alpha=0.81, length_scale=1.02) + WhiteKernel(noise_level=1e-05)"
+4,0.01818,8.104059641491325e-05,0.006984388780591052,0.0,434.5901679992676,"1.07**2 * RationalQuadratic(alpha=0.746, length_scale=1.08) + WhiteKernel(noise_level=1e-05)"
+5,0.05,0.0016618105380108929,0.04067573868259023,-3.4514454543976124e+31,471.06742572784424,"1.06**2 * RationalQuadratic(alpha=1.14, length_scale=1.17) + WhiteKernel(noise_level=1e-05)"
