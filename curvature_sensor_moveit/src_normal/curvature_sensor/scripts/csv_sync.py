@@ -155,8 +155,16 @@ def merge_csvs(curvature_value):
     for audio_file in audio_files:
         # Extract the test identifier if present (e.g., "[test 1]")
         test_id = ""
-        if "[" in audio_file:
-            test_id = audio_file[audio_file.index("["):audio_file.index("]")+1]
+        try:
+            print(f"🔍 Processing audio file: {audio_file}")  # Debugging statement
+            if "[" in audio_file and "]" in audio_file:
+                test_id = audio_file[audio_file.index("["):audio_file.index("]")+1]
+            else:
+                raise ValueError(f"Missing brackets in filename: {audio_file}")
+        except ValueError as e:
+            print(f"⚠️ Error processing file: {audio_file}")
+            print(f"   Reason: {e}")
+            test_id = ""
         
         # Find matching robot files based on curvature and test ID
         robot_dir = os.path.join(raw_dir, "robot")
@@ -171,18 +179,20 @@ def merge_csvs(curvature_value):
         
         if not matching_robot_files:
             print(f"❌ No matching robot file found for audio file: {audio_file}")
-            
+            print(f"   Expected robot file: raw_robot_{curvature_str}{test_id}.csv")
+            print(f"   Available robot files: {os.listdir(robot_dir)}")  # Log all robot files
+
             # Move the unpaired audio file to no_pairs directory
             audio_path = os.path.join(audio_fft_dir, audio_file)
             shutil.move(audio_path, os.path.join(no_pairs_dir, audio_file))
-            
+
             # Track this unpaired file
             unpaired_files.append({
                 "file": audio_file,
                 "type": "audio",
                 "reason": "No matching robot file"
             })
-            
+
             print(f"✓ Moved unpaired audio file to {no_pairs_dir}/{audio_file}")
             continue
             
@@ -214,6 +224,7 @@ def merge_csvs(curvature_value):
         if not all(col in df_robot.columns for col in required_cols):
             print(f"❌ Robot CSV file missing required columns: {required_cols}")
             print(f"   Found columns: {df_robot.columns.tolist()}")
+            print(f"   Skipping file: {robot_file}")
             continue
         
         print(f"🧾 Audio rows loaded: {len(df_audio)}")
@@ -262,6 +273,10 @@ def merge_csvs(curvature_value):
         
         # Create a copy of audio data as the base for our merged dataframe
         merged_df = df_audio.copy()
+        
+        # Add/overwrite Curvature column with the curvature value from the filename
+        # This will be the default curvature for active segments.
+        merged_df["Curvature"] = curvature_value
         
         # Add the new Curvature_Active column (default to 0 - inactive)
         merged_df["Curvature_Active"] = 0
@@ -324,6 +339,13 @@ def merge_csvs(curvature_value):
         print(f"   - Found {interval_count} valid close-open intervals")
         print(f"   - Marked {total_matches} rows as Curvature_Active=1")
         print(f"   - Unmarked rows (Curvature_Active=0): {len(merged_df) - total_matches}")
+        
+        # Set Curvature to 0.0 for rows where Curvature_Active is 0.
+        # For rows where Curvature_Active is 1, the original curvature_value is retained.
+        # This aligns with the logic that if the sensor isn't actively measuring (no position propagated),
+        # the curvature for that specific audio row should be considered 0.
+        merged_df.loc[merged_df['Curvature_Active'] == 0, 'Curvature'] = 0.0
+        print(f"✓ Updated 'Curvature' column: Set to 0.0 for {(merged_df['Curvature_Active'] == 0).sum()} inactive rows.")
         
         # Remove the original Section column
         if "Section" in merged_df.columns:

@@ -33,14 +33,12 @@ def main():
     print("2. Collect Data (curvature_data_collector.py)")
     print("3. ROS Control (curvature_ros.py)")
     print("4. Sync Robot and Audio CSV Files (csv_sync.py)")
-    print("5. Normalize Data (baseline_norm.py)")
-    print("6. Preprocess Data (preprocess_training_features.py)")
     print("═════════════════════════════════════════")
 
     try:
         choice = int(input("Enter the number corresponding to your choice: "))
     except ValueError:
-        print("❌ Invalid input. Please enter a number between 1 and 6.")
+        print("❌ Invalid input. Please enter a number between 1 and 4.")
         return
 
     # Task 1: Generate WAV files
@@ -104,39 +102,9 @@ def main():
         except Exception as e:
             print(f"❌ Error while running csv_sync: {e}")
 
-    # Task 5: Normalize data
-    elif choice == 5:
-        try:
-            # Dynamically import the baseline_norm module and execute its main function
-            baseline_norm = importlib.import_module("baseline_norm")
-            print("🔄 Normalizing FFT columns...")
-            baseline_norm.main()
-            print("✅ Normalization completed successfully!")
-        except ImportError as e:
-            print(f"❌ Error: {e}. Ensure 'baseline_norm.py' exists in the 'scripts' directory.")
-        except Exception as e:
-            print(f"❌ Error during normalization: {e}")
-
-    # Task 6: Preprocess data
-    elif choice == 6:
-        try:
-            # Dynamically import the preprocess_training_features module
-            module_path = os.path.join(os.path.dirname(__file__), "preprocess_training_features")
-            spec = importlib.util.spec_from_file_location("preprocess_training_features", f"{module_path}.py")
-            preprocess_training_features = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(preprocess_training_features)
-
-            print("🔄 Processing training features...")
-            preprocess_training_features.process_curvature_data()
-            print("✅ Feature preprocessing completed successfully!")
-        except FileNotFoundError as e:
-            print(f"❌ Error: {e}. Ensure 'preprocess_training_features.py' exists in the 'scripts' directory.")
-        except Exception as e:
-            print(f"❌ Error during preprocessing: {e}")
-
     # Handle invalid menu choices
     else:
-        print("❌ Invalid choice. Please enter a number between 1 and 6.")
+        print("❌ Invalid choice. Please enter a number between 1 and 4.")
 
 # Entry point of the script
 if __name__ == "__main__":
