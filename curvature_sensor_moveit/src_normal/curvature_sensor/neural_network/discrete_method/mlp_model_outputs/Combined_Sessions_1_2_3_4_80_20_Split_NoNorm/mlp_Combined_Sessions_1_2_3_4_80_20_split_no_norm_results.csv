@@ -1,0 +1,2 @@
+run_label,split_type,mse,rmse,mae,r2,fitting_time_s,best_epoch_val_loss,total_samples,train_samples_80_percent,test_samples_20_percent
+Combined_Sessions_1_2_3_4,80_20_random,275.202681734668,16.58923391042118,12.763037626724724,-0.000608886302145395,308.44602227211,52,15896,12716,3180

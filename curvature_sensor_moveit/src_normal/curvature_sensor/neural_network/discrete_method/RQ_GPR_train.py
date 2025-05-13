@@ -39,7 +39,8 @@ import os
 import glob
 import re
 import time
-from datetime import datetime # Added for report timestamp (though report is removed)
+from datetime import datetime
+import json # Ensure this line is present
 from sklearn.model_selection import LeaveOneGroupOut
 from sklearn.preprocessing import StandardScaler
 from sklearn.gaussian_process import GaussianProcessRegressor
@@ -195,13 +196,23 @@ def generate_performance_plots(detailed_predictions_df, output_dir, model_name_p
 # --- Main GPR Training and Evaluation Function ---
 # =================================================================================
 def train_gpr_for_selected_test_run(
-    input_files_for_session,  # List of pre-filtered files for the chosen session
-    test_session_num_str,     # e.g., "1", "2" for naming outputs and parsing
-    output_dir_for_session    # Specific output directory for this session's results
+    input_files_for_session,
+    test_session_num_str,
+    output_dir_for_session
 ):
     all_gpr_ready_segments = []
     successful_baseline_count = 0
     files_without_baseline = []
+
+    # --- Define GPR Configuration for Logging ---
+    # Define initial kernel configuration string here to capture it before any fitting
+    # This is the kernel used for CV folds and as the starting point for the final model
+    initial_kernel_config = ConstantKernel(1.0, (1e-3, 1e3)) * RationalQuadratic(length_scale=1.0, alpha=1.0, length_scale_bounds=(1e-2, 1e2), alpha_bounds=(1e-2, 1e2)) \
+                            + WhiteKernel(noise_level=0.1, noise_level_bounds=(1e-5, 1e1))
+    initial_kernel_config_str = str(initial_kernel_config)
+    gpr_n_restarts_optimizer_val = 9 # Store this as well
+    gpr_normalize_y_val = True # As used in your GPR instances
+    gpr_random_state_val = 42 # As used
 
     print(f"Starting GPR data preparation for {len(input_files_for_session)} files from session '[test {test_session_num_str}]'...")
 
@@ -332,14 +343,16 @@ def train_gpr_for_selected_test_run(
         y_pred, y_std = gpr.predict(X_test_scaled, return_std=True)
 
         mse = mean_squared_error(y_test, y_pred)
-        mae = mean_absolute_error(y_test, y_pred) 
+        rmse = np.sqrt(mse) # Calculate RMSE
+        mae = mean_absolute_error(y_test, y_pred) # MAE is already calculated
         r2 = r2_score(y_test, y_pred)
         
         fold_metrics.append({
-            'fold': fold_num, 'tested_group': current_test_group_curvature, 'mse': mse, 'mae': mae, 
+            'fold': fold_num, 'tested_group': current_test_group_curvature, 
+            'mse': mse, 'rmse': rmse, 'mae': mae, # Both rmse and mae are stored per fold
             'r2': r2, 'fitting_time_s': fit_time_fold, 'learned_kernel': str(gpr.kernel_)
         })
-        print(f"  Fold {fold_num} Results: MSE = {mse:.6f}, MAE = {mae:.6f}, R2 = {r2:.4f}")
+        print(f"  Fold {fold_num} Results: MSE = {mse:.6f}, RMSE = {rmse:.6f}, MAE = {mae:.6f}, R2 = {r2:.4f}")
 
         fold_test_df = pd.DataFrame({
             'true_curvature': y_test.values, 'predicted_curvature': y_pred,
@@ -353,15 +366,29 @@ def train_gpr_for_selected_test_run(
         all_fold_predictions_data.append(fold_test_df)
 
     print("\n--- Cross-Validation Finished ---")
+
+    # Initialize CV summary metrics to default values
+    avg_mse, avg_rmse, avg_mae, avg_r2, avg_fit_time = None, None, None, None, None
+    num_folds_run = 0 # Default to 0 folds
+
     if fold_metrics:
         results_df = pd.DataFrame(fold_metrics)
         print(f"\nCross-Validation Results Summary (Leave-One-Curvature-Profile-Out for session [test {test_session_num_str}]):")
-        columns_to_print = ['fold', 'tested_group', 'mse', 'mae', 'r2', 'fitting_time_s', 'learned_kernel']
+        columns_to_print = ['fold', 'tested_group', 'mse', 'rmse', 'mae', 'r2', 'fitting_time_s', 'learned_kernel']
         with pd.option_context('display.max_colwidth', None, 'display.width', 1000):
              print(results_df[columns_to_print])
-        print(f"\nAverage CV MSE: {results_df['mse'].mean():.6f}")
-        print(f"Average CV MAE: {results_df['mae'].mean():.6f}")
-        print(f"Average CV R2 Score: {results_df['r2'].mean():.4f}")
+        
+        avg_mse = results_df['mse'].mean()
+        avg_rmse = results_df['rmse'].mean() 
+        avg_mae = results_df['mae'].mean()   
+        avg_r2 = results_df['r2'].mean()
+        avg_fit_time = results_df['fitting_time_s'].mean()
+        num_folds_run = len(results_df) # Assign num_folds_run here
+
+        print(f"\nAverage CV MSE: {avg_mse:.6f}")
+        print(f"Average CV RMSE: {avg_rmse:.6f}") 
+        print(f"Average CV MAE: {avg_mae:.6f}")
+        print(f"Average CV R2 Score: {avg_r2:.4f}")
         
         output_csv_path = os.path.join(output_dir_for_session, f"{model_name_prefix}_LOCO_curvature_cv_results.csv")
         try:
@@ -381,19 +408,27 @@ def train_gpr_for_selected_test_run(
             print(f"Error saving detailed predictions CSV or generating plots: {e}")
 
     print(f"\n--- Training Final Model on All Processed Data for session [test {test_session_num_str}] ---")
+    
+    # Initialize variables for final model summary
+    learned_kernel_final_str = None
+    fit_time_final_val = None
+
     if not X.empty and not y.empty:
         final_scaler = StandardScaler()
         X_scaled_final = final_scaler.fit_transform(X) 
 
-        final_kernel = ConstantKernel(1.0, (1e-3, 1e3)) * RationalQuadratic(length_scale=1.0, alpha=1.0, length_scale_bounds=(1e-2, 1e2), alpha_bounds=(1e-2, 1e2)) \
-                       + WhiteKernel(noise_level=0.1, noise_level_bounds=(1e-5, 1e1))
-        final_gpr = GaussianProcessRegressor(kernel=final_kernel, n_restarts_optimizer=9, random_state=42, normalize_y=True)
+        # Use the same initial kernel structure and GPR params for consistency
+        final_gpr = GaussianProcessRegressor(kernel=initial_kernel_config, # Correctly uses the initial_kernel_config defined at the function start
+                                             n_restarts_optimizer=gpr_n_restarts_optimizer_val, 
+                                             random_state=gpr_random_state_val, 
+                                             normalize_y=gpr_normalize_y_val)
 
         print(f"Fitting final GPR model on all data for session [test {test_session_num_str}] (Size: {X_scaled_final.shape[0]})...")
         start_time_final = time.time()
         final_gpr.fit(X_scaled_final, y)
-        fit_time_final = time.time() - start_time_final
-        print(f"Final GPR model fitted in {fit_time_final:.2f}s. Learned kernel: {final_gpr.kernel_}")
+        fit_time_final_val = time.time() - start_time_final
+        learned_kernel_final_str = str(final_gpr.kernel_)
+        print(f"Final GPR model fitted in {fit_time_final_val:.2f}s. Learned kernel: {learned_kernel_final_str}")
 
         model_save_path = os.path.join(output_dir_for_session, f"{model_name_prefix}_final_model.joblib")
         scaler_save_path = os.path.join(output_dir_for_session, f"{model_name_prefix}_final_scaler.joblib")
@@ -407,7 +442,51 @@ def train_gpr_for_selected_test_run(
             print(f"Error saving final model/scaler: {e}")
     else:
         print("Skipping final model training as combined data is empty or X/y were not available.")
+        # learned_kernel_final_str and fit_time_final_val will remain None
 
+    # --- Create and Save JSON Summary ---
+    summary_data = {
+        "experiment_info": {
+            "test_session_id": test_session_num_str,
+            "timestamp_utc": datetime.now(datetime.timezone.utc).isoformat(), # Corrected for deprecation
+            "model_name_prefix": model_name_prefix,
+            "feature_columns": FEATURE_COLUMNS,
+            "target_column": TARGET_COLUMN
+        },
+        "gpr_configuration": {
+            "initial_kernel": initial_kernel_config_str,
+            "n_restarts_optimizer": gpr_n_restarts_optimizer_val,
+            "normalize_y_gpr": gpr_normalize_y_val,
+            "random_state_gpr": gpr_random_state_val
+        },
+        "data_preprocessing": {
+            "feature_scaler": "StandardScaler" 
+            # Add more details here if scaling becomes more complex or configurable
+        },
+        "cross_validation_summary": {
+            "cv_strategy": "LeaveOneGroupOut (on curvature profiles)",
+            "num_folds_run": num_folds_run,
+            "avg_mse": avg_mse,
+            "avg_rmse": avg_rmse, # <--- Average RMSE is included here
+            "avg_mae": avg_mae,   # <--- Average MAE is included here
+            "avg_r2": avg_r2,
+            "avg_fitting_time_s_per_fold": avg_fit_time
+        },
+        "final_model_summary": {
+            "trained_on_all_session_data": (learned_kernel_final_str is not None),
+            "learned_kernel_final_model": learned_kernel_final_str,
+            "training_time_s_final_model": fit_time_final_val,
+            "num_samples_final_train": len(X) if not X.empty else 0
+        }
+    }
+
+    json_summary_path = os.path.join(output_dir_for_session, f"{model_name_prefix}_experiment_summary.json")
+    try:
+        with open(json_summary_path, 'w') as f:
+            json.dump(summary_data, f, indent=4)
+        print(f"Experiment summary JSON saved to: {json_summary_path}")
+    except Exception as e:
+        print(f"Error saving experiment summary JSON: {e}")
 
 # =================================================================================
 # --- Main Execution ---

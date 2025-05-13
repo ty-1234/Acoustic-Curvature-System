@@ -63,3 +63,14 @@ This script focuses on training and evaluating a GPR model using data from a **s
 * *(This section can be filled in once the `randomForrest.py` script is developed. It should ideally follow the same data selection (operator chooses a test session) and preprocessing methodology as `RQ_GPR_train.py` to allow for a direct comparison of model performance on the same data subset.)*
 
 This pipeline structure allows for modular data processing and focused model evaluation on specific experimental sessions, testing generalization across different curvature profiles within that session.
+
+
+
+
+**discrete_method/mlp_model_outputs/Combined_Sessions_1_2_3_4_80_20_Split**
+
+We performed the 80/20 random split as a sanity check to determine if the MLP could learn a basic relationship between the features (FFT + Position) and curvature when exposed to all curvature profiles during training. This helped isolate whether the poor performance in LOGO CV was due to the inherent difficulty of generalizing to unseen curvature profiles or a more fundamental issue with the features or model. The results showed that the MLP could learn weakly with proper preprocessing (R² ~0.018), confirming that the data contains some predictive signal and that preprocessing is crucial, but generalization to unseen profiles remains the primary challenge.
+
+**discrete_method/mlp_model_outputs/Combined_Sessions_1_2_3_4_80_20_Split_NoNorm**
+This was a control test where no normalization was applied during the 80/20 split to evaluate its impact on model performance. The results showed that normalization significantly improved the model, as the R² without normalization was approximately -0.0006, indicating slightly worse-than-random predictions.
+

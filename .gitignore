@@ -4,7 +4,7 @@ env/
 ENV/
 .venv/
 curvature_sensor_moveit/src_normal/curvature_sensor/.venv
-curvature_sensor_moveit/src_normal/curvature_sensor/neural_network/.venv
+curvature_sensor_moveit/src_normal/curvature_sensor/neural_network/.venv-tf
 
 # Python bytecode files
 __pycache__/
