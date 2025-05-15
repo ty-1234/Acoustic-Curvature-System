@@ -1,0 +1,87 @@
+{
+    "data_summary": {
+        "combined_data_shape_after_nan_drop": [
+            3971,
+            13
+        ],
+        "combined_data_shape_before_nan_drop": [
+            3971,
+            16
+        ],
+        "test_set_shape": [
+            795,
+            11
+        ],
+        "total_files_processed": 5,
+        "training_set_shape": [
+            3176,
+            11
+        ]
+    },
+    "evaluation_always_on_radius": "Radius_mm",
+    "gpr_alpha_value_added_to_diagonal": 1e-10,
+    "gpr_kernel_initial_config": "1**2 * RationalQuadratic(alpha=1, length_scale=1) + WhiteKernel(noise_level=0.1)",
+    "gpr_kernel_optimized_config": "0.438**2 * RationalQuadratic(alpha=0.457, length_scale=0.113) + WhiteKernel(noise_level=1e-06)",
+    "gpr_n_restarts_optimizer": 10,
+    "input_data_directory": "/Users/bipinrai/git/ass_245/curvature_sensor_moveit/src_normal/curvature_sensor/neural_network/csv_data/cleaned",
+    "input_features_used": [
+        "FFT_200Hz",
+        "FFT_400Hz",
+        "FFT_600Hz",
+        "FFT_800Hz",
+        "FFT_1000Hz",
+        "FFT_1200Hz",
+        "FFT_1400Hz",
+        "FFT_1600Hz",
+        "FFT_1800Hz",
+        "FFT_2000Hz",
+        "Position_cm"
+    ],
+    "kernel_type": "RationalQuadratic",
+    "model_type": "GaussianProcessRegressor",
+    "output_directory": "/Users/bipinrai/git/ass_245/curvature_sensor_moveit/src_normal/curvature_sensor/neural_network/model_outputs/run_20250515_012717_log_radius_sessions_1",
+    "performance_metrics_on_radius": {
+        "mae": 30.682495460373726,
+        "r2_score": 0.5044495798377571,
+        "rmse": 45.10149139106703,
+        "units": "mm"
+    },
+    "predict_target_variable_for_gpr": "LOG_RADIUS",
+    "radius_zero_handling_for_source_data": "cap",
+    "random_state_seed": 42,
+    "script_variant": "80_20_pos_target_log_radius",
+    "segmented_radius_errors": [
+        {
+            "Count": 312,
+            "MAE": 16.41763992194738,
+            "Mean_Error (Bias)": -13.89594394607352,
+            "RMSE": 23.84622584931676,
+            "Segment": "20.0-56.0"
+        },
+        {
+            "Count": 149,
+            "MAE": 18.423157216258282,
+            "Mean_Error (Bias)": 6.484775535731866,
+            "RMSE": 24.24822979115804,
+            "Segment": "92.0-128.0"
+        },
+        {
+            "Count": 160,
+            "MAE": 27.76621385801812,
+            "Mean_Error (Bias)": 18.11453488110731,
+            "RMSE": 36.16164723411787,
+            "Segment": "128.0-164.0"
+        },
+        {
+            "Count": 174,
+            "MAE": 69.44043444163303,
+            "Mean_Error (Bias)": 67.05408244356708,
+            "RMSE": 81.04538122955199,
+            "Segment": "164.0-200.0"
+        }
+    ],
+    "sessions_processed": [
+        "1"
+    ],
+    "test_size_split_ratio": 0.2
+}
