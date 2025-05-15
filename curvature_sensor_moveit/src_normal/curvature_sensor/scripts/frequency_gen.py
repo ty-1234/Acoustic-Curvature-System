@@ -1,12 +1,12 @@
 """
 multi-tone frequency generator for curvature sensing experiments.
 
-This script generates and plays a continuous multi-tone signal.
-MODIFIED to generate sine waves from 100 Hz to 16,000 Hz (in steps of 100 Hz).
-Includes important considerations for sample rate and hardware capabilities.
+This script generates and plays a continuous multi-tone signal containing sine waves
+at frequencies from 200 Hz to 2000 Hz (in steps of 200 Hz). It provides a consistent
+acoustic input signal for real-time curvature sensing experiments.
 
 Author: Bipindra Rai
-Date: 2025-04-28 (Modified: 2025-05-15)
+Date: 2025-04-28
 """
 
 import numpy as np
@@ -30,25 +30,8 @@ class RealTimeFrequencyGenerator:
         """Initialize the real-time frequency generator with audio settings."""
         # Audio parameters
         self.sample_rate = 44100  # Hz
-        # Example for higher sample rate (check hardware support if going above Nyquist):
-        # self.sample_rate = 96000 # Hz (max representable freq: 48kHz)
-        
-        self.block_size = 4410    # Number of frames per block (e.g., 100ms at 44.1kHz)
-                                  # If changing sample_rate, you might want to adjust block_size
-                                  # to maintain similar latency, e.g., self.block_size = int(0.1 * self.sample_rate)
-
-        # --- MODIFIED FREQUENCY RANGE ---
-        self.frequencies = list(range(100, 16001, 100))  # [100, 200, ..., 16000]
-        
-        # --- NYQUIST FREQUENCY WARNING (still useful if sample_rate is changed or frequencies go higher) ---
-        self.nyquist_freq = self.sample_rate / 2
-        if max(self.frequencies) > self.nyquist_freq:
-            logging.warning(
-                f"🚨 WARNING: Maximum requested frequency ({max(self.frequencies)} Hz) "
-                f"exceeds Nyquist frequency ({self.nyquist_freq} Hz) for the current "
-                f"sample rate ({self.sample_rate} Hz). Frequencies above {self.nyquist_freq} Hz "
-                f"will be aliased (distorted). Consider increasing self.sample_rate if applicable."
-            )
+        self.block_size = 4410    # 100ms blocks
+        self.frequencies = list(range(200, 2001, 200))  # [200, 400, ..., 2000]
         
         # Control variables
         self.running = False
@@ -59,11 +42,7 @@ class RealTimeFrequencyGenerator:
         signal.signal(signal.SIGINT, self._signal_handler)
         signal.signal(signal.SIGTERM, self._signal_handler)
         
-        logging.info(f"🎵 Frequency generator initialized. Target frequencies: {min(self.frequencies)} Hz to {max(self.frequencies)} Hz.")
-        logging.info(f"   Sample Rate: {self.sample_rate} Hz. Nyquist Frequency: {self.nyquist_freq} Hz.")
-        logging.info(f"   Number of tones: {len(self.frequencies)}.")
-        logging.info("   Ensure your audio output device (e.g., speaker/transducer) can reproduce the desired frequency range.")
-
+        logging.info(f"🎵 Frequency generator initialized with frequencies: {self.frequencies} Hz")
 
     def _generate_block(self, t_start):
         """
@@ -88,193 +67,205 @@ class RealTimeFrequencyGenerator:
         )
         
         # Generate multi-tone signal
-        combined_signal = np.zeros_like(t, dtype=np.float32)
-        if not self.frequencies: 
-            return combined_signal
-
-        # Scale amplitude to prevent clipping when combined.
-        # 0.8 is used to leave some headroom.
-        scale_factor = 0.8 / len(self.frequencies) 
-        
+        signal = np.zeros_like(t, dtype=np.float32)
         for freq in self.frequencies:
-            combined_signal += scale_factor * np.sin(2 * np.pi * freq * t)
+            # Scale amplitude to prevent clipping when combined
+            scale_factor = 0.8 / len(self.frequencies)
+            signal += scale_factor * np.sin(2 * np.pi * freq * t)
         
-        return combined_signal
+        return signal
     
-    def _audio_callback(self, outdata, frames, time_info, status):
+    def _audio_callback(self, outdata, frames, time, status):
         """
         Callback function for the sounddevice output stream.
-        Retrieves pre-generated audio blocks from the queue.
+        
+        This is called by sounddevice when it needs more audio data to play.
+        It retrieves pre-generated audio blocks from the queue.
+        
+        Parameters:
+        -----------
+        outdata : ndarray
+            Output buffer to fill with audio data
+        frames : int
+            Number of frames to generate
+        time : CData
+            Timestamp information
+        status : CallbackFlags
+            Status flags indicating if there were errors
         """
         if status:
             logging.warning(f"⚠️ Audio output status: {status}")
         
         try:
+            # Get next audio block from queue
             data = self.buffer_queue.get_nowait()
-            outdata[:] = data.reshape(-1, 1)
+            outdata[:] = data.reshape(-1, 1)  # Reshape to match outdata dimensions
         except queue.Empty:
-            logging.warning("⚠️ Buffer underrun - audio queue empty. Outputting silence.")
+            # If queue is empty, generate silence
+            logging.warning("⚠️ Buffer underrun - audio queue empty")
             outdata.fill(0)
     
     def _generate_audio_blocks(self):
         """
         Continuously generate audio blocks and add them to the queue.
-        This runs in a separate thread.
+        
+        This runs in a separate thread to keep the audio buffer filled.
         """
-        t_current_block_start = 0.0
+        t_pos = 0.0  # Starting time position
         
         try:
             while self.running:
-                if self.buffer_queue.qsize() < self.buffer_queue.maxsize -1: 
-                    audio_block = self._generate_block(t_current_block_start)
-                    t_current_block_start += self.block_size / self.sample_rate
-                    try:
-                        self.buffer_queue.put(audio_block, timeout=0.05)
-                    except queue.Full:
-                        logging.debug("Audio buffer queue full, generation paused briefly.")
-                        time.sleep(0.01) 
-                else:
-                    time.sleep(self.block_size / (2 * self.sample_rate) ) 
+                # Generate next audio block
+                audio_block = self._generate_block(t_pos)
+                
+                # Update time position for next block
+                t_pos += self.block_size / self.sample_rate
+                
+                # Add to queue (with timeout to allow checking running flag)
+                try:
+                    self.buffer_queue.put(audio_block, timeout=1.0)
+                except queue.Full:
+                    # Skip this block if queue is full
+                    pass
+                
+                # Small sleep to prevent CPU burn
+                time.sleep(0.01)
                 
         except Exception as e:
-            logging.error(f"❌ Error in audio generation thread: {e}", exc_info=True)
-            self.running = False 
+            logging.error(f"❌ Error in audio generation thread: {e}")
+            self.running = False
     
     def _signal_handler(self, sig, frame):
-        logging.info(f"\n🛑 Received signal {sig}. Attempting graceful shutdown...")
+        """Handle termination signals by stopping the generator."""
+        logging.info("\n🛑 Received termination signal")
         self.stop()
+        sys.exit(0)
             
     def start(self):
         """
         Start the real-time frequency generator.
+        
+        Returns:
+        --------
+        bool
+            True if started successfully, False otherwise
         """
         if self.running:
-            logging.warning("⚠️ Frequency generator already running.")
+            logging.warning("⚠️ Frequency generator already running")
             return True
         
         try:
+            # Set running flag
             self.running = True
-            while not self.buffer_queue.empty():
-                try:
-                    self.buffer_queue.get_nowait()
-                except queue.Empty:
-                    break
-
+            
+            # Start the audio generation thread
             self.audio_thread = threading.Thread(
                 target=self._generate_audio_blocks,
-                daemon=True 
+                daemon=True
             )
             self.audio_thread.start()
             
-            prefill_target = min(5, self.buffer_queue.maxsize -1) 
+            # Pre-fill the buffer queue
             start_time = time.time()
-            while self.buffer_queue.qsize() < prefill_target and (time.time() - start_time < 2.0) and self.running:
-                time.sleep(0.05) 
+            while self.buffer_queue.qsize() < 5 and time.time() - start_time < 2.0:
+                time.sleep(0.1)
             
-            if not self.running: 
-                logging.info("Generator stopped during prefill.")
-                if self.audio_thread.is_alive(): self.audio_thread.join(timeout=1.0)
-                return False
-
-            if self.buffer_queue.qsize() < prefill_target:
-                logging.warning(f"⚠️ Buffer prefill incomplete ({self.buffer_queue.qsize()}/{prefill_target} blocks). Starting stream anyway.")
-
+            # Open the audio output stream
             self.audio_stream = sd.OutputStream(
                 samplerate=self.sample_rate,
                 blocksize=self.block_size,
-                channels=1, 
+                channels=1,
                 callback=self._audio_callback,
                 dtype='float32'
             )
             self.audio_stream.start()
             
-            logging.info("✅ Frequency generator started successfully.")
+            logging.info("✅ Frequency generator started successfully")
             return True
             
         except Exception as e:
-            logging.error(f"❌ Failed to start frequency generator: {e}", exc_info=True)
-            self.stop() 
+            logging.error(f"❌ Failed to start frequency generator: {e}")
+            self.running = False
             return False
     
     def stop(self):
         """
         Stop the real-time frequency generator.
+        
+        Returns:
+        --------
+        bool
+            True if stopped successfully, False otherwise
         """
-        if not self.running and not (hasattr(self, 'audio_stream') and self.audio_stream):
-            logging.info("ℹ️ Frequency generator appears to be already stopped or was not started.")
+        if not self.running:
+            logging.warning("⚠️ Frequency generator not running")
             return True
         
-        logging.info("Stopping frequency generator...")
-        self.running = False 
-        
         try:
+            # Set running flag to stop generation thread
+            self.running = False
+            
+            # Stop and close the audio stream
             if hasattr(self, 'audio_stream') and self.audio_stream:
-                if not self.audio_stream.stopped:
-                    self.audio_stream.stop()
-                if not self.audio_stream.closed:
-                    self.audio_stream.close()
-                self.audio_stream = None 
-                logging.debug("Audio stream stopped and closed.")
+                self.audio_stream.stop()
+                self.audio_stream.close()
+                self.audio_stream = None
             
+            # Wait for audio thread to finish
             if self.audio_thread and self.audio_thread.is_alive():
-                logging.debug("Waiting for audio generation thread to finish...")
-                self.audio_thread.join(timeout=2.0) 
-                if self.audio_thread.is_alive():
-                    logging.warning("⚠️ Audio generation thread did not finish in time.")
-                else:
-                    logging.debug("Audio generation thread finished.")
+                self.audio_thread.join(timeout=2.0)
             
-            logging.debug("Clearing audio buffer queue...")
+            # Clear the buffer queue
             while not self.buffer_queue.empty():
                 try:
                     self.buffer_queue.get_nowait()
                 except queue.Empty:
                     break
-            logging.debug("Audio buffer queue cleared.")
             
-            logging.info("✅ Frequency generator stopped successfully.")
+            logging.info("✅ Frequency generator stopped successfully")
             return True
             
         except Exception as e:
-            logging.error(f"❌ Error stopping frequency generator: {e}", exc_info=True)
+            logging.error(f"❌ Error stopping frequency generator: {e}")
             return False
     
     def is_running(self):
+        """
+        Check if the frequency generator is currently running.
+        
+        Returns:
+        --------
+        bool
+            True if running, False otherwise
+        """
         return self.running
 
 
 def main():
-    main_stop_event = threading.Event()
-    def main_signal_handler(sig, frame):
-        logging.info(f"\n🛑 Main received signal {sig}, setting stop event.")
-        main_stop_event.set()
-
-    original_sigint = signal.getsignal(signal.SIGINT)
-    original_sigterm = signal.getsignal(signal.SIGTERM)
-    signal.signal(signal.SIGINT, main_signal_handler)
-    signal.signal(signal.SIGTERM, main_signal_handler)
-
+    """
+    Main function that initializes and starts the frequency generator.
+    
+    This function serves as a standalone entry point and demonstration
+    of the generator's capabilities.
+    """
     generator = RealTimeFrequencyGenerator()
     
     try:
+        # Start the generator
         if generator.start():
             logging.info("🎵 Playing multi-tone signal. Press Ctrl+C to stop.")
-            while generator.is_running() and not main_stop_event.is_set():
-                time.sleep(0.1) 
-        else:
-            logging.error("Could not start the frequency generator.")
             
-    except Exception as e: 
-        logging.error(f"❌ An unexpected error occurred in main: {e}", exc_info=True)
-
+            # Keep running until interrupted
+            while generator.is_running():
+                time.sleep(0.1)
+    
+    except KeyboardInterrupt:
+        logging.info("\n🛑 Frequency generator stopped by user")
+    
     finally:
-        logging.info("Initiating final cleanup...")
-        if hasattr(generator, 'is_running') and generator.is_running(): 
-            generator.stop()
-        
-        signal.signal(signal.SIGINT, original_sigint)
-        signal.signal(signal.SIGTERM, original_sigterm)
-        logging.info("👋 Frequency generator exited.")
+        # Ensure generator is stopped
+        generator.stop()
+        logging.info("👋 Frequency generator exited")
 
 
 if __name__ == "__main__":
