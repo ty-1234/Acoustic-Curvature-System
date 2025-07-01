@@ -1,0 +1,21 @@
+{
+  "Section (cm)": {
+    "Mean Squared Error": 0.20641322870962134,
+    "R\u00b2 Score": 0.9268922350578838
+  },
+  "Curvature (mm^-1)": {
+    "Mean Squared Error": 1.960935306997956e-05,
+    "R\u00b2 Score": 0.931636085413087
+  },
+  "Best Hyperparameters": {
+    "estimator__solver": "lbfgs",
+    "estimator__learning_rate": "constant",
+    "estimator__hidden_layer_sizes": [
+      100,
+      50,
+      25
+    ],
+    "estimator__alpha": 0.0001,
+    "estimator__activation": "tanh"
+  }
+}

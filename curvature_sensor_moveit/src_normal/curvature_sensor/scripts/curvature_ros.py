@@ -1,15 +1,19 @@
+"""
+curvature_ros.py
+
+This script provides a ROS-based interface for controlling a Franka Emika Panda robot arm using MoveIt.
+It supports:
+- Moving the robot to predefined positions and along a path.
+- Applying forces via a force controller.
+- Collecting and saving end-effector pose and gripper state data for different curvature sections.
+- Switching between robot controllers and handling error recovery.
+- Publishing and subscribing to ROS topics for force control and section labeling.
+
+Intended for automated data collection and manipulation tasks in curvature sensing experiments.
+"""
+
 #!/home/franka/miniconda3/envs/tariq/bin/python
- 
-"""
-Module Name: Data Collection for Cablibration
-Author: Giuliano Gemmani
-Email: giulianogemmani@gmail.com
-Date: YYYY-MM-DD
- 
-Description:
-    A brief summary of the module’s purpose and functionality.
- 
-"""
+
  
 from __future__ import print_function
  

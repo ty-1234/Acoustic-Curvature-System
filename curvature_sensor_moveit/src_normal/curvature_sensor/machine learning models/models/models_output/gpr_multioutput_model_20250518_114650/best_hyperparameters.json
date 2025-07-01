@@ -1,0 +1,5 @@
+{
+  "estimator__n_restarts_optimizer": 0,
+  "estimator__kernel": "1**2 * RBF(length_scale=1)",
+  "estimator__alpha": 0.0001
+}

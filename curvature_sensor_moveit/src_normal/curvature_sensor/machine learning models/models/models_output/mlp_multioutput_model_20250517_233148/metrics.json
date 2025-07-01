@@ -1,0 +1,23 @@
+{
+  "Position (cm)": {
+    "RMSE": 0.46497610917514204,
+    "MAE": 0.32871165010374787,
+    "R\u00b2 Score": 0.9234249554998181
+  },
+  "Curvature (mm^-1)": {
+    "RMSE": 0.003751896352286625,
+    "MAE": 0.0011894476664688542,
+    "R\u00b2 Score": 0.950924433519845
+  },
+  "Best Hyperparameters": {
+    "estimator__solver": "lbfgs",
+    "estimator__learning_rate": "constant",
+    "estimator__hidden_layer_sizes": [
+      100,
+      50,
+      25
+    ],
+    "estimator__alpha": 0.01,
+    "estimator__activation": "tanh"
+  }
+}

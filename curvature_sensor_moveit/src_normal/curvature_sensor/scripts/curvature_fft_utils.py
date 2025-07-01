@@ -1,12 +1,3 @@
-"""
-Utility functions for processing FFT features from sensor data.
-
-This module provides functions to extract frequency domain features
-from time series data using Fast Fourier Transform (FFT).
-
-Author: Bipindra Rai
-Date: 2025-04-17
-"""
 
 import numpy as np
 

@@ -1,0 +1,16 @@
+{
+  "Position (cm)": {
+    "MSE": 0.1575057989892796,
+    "R\u00b2": 0.944214346137052
+  },
+  "Curvature (mm^-1)": {
+    "MSE": 8.844730118450503e-06,
+    "R\u00b2": 0.9691646954285433
+  },
+  "Best Hyperparameters": {
+    "estimator__kernel": "poly",
+    "estimator__gamma": "scale",
+    "estimator__epsilon": 0.01,
+    "estimator__C": 1
+  }
+}

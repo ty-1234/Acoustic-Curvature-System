@@ -1,0 +1,8 @@
+{
+  "estimator__kernel": "poly",
+  "estimator__gamma": "scale",
+  "estimator__epsilon": 0.01,
+  "estimator__C": 1,
+  "test_size": 0.2,
+  "random_state": 42
+}

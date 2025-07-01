@@ -1,0 +1,13 @@
+{
+  "estimator__solver": "lbfgs",
+  "estimator__learning_rate": "constant",
+  "estimator__hidden_layer_sizes": [
+    100,
+    50,
+    25
+  ],
+  "estimator__alpha": 0.0001,
+  "estimator__activation": "tanh",
+  "test_size": 0.2,
+  "random_state": 42
+}

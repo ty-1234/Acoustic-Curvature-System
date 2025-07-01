@@ -1,94 +1,106 @@
-# Curvature Sensing System: Scripts Module
+# Curvature Sensing System
 
 ## Overview
 
-The `scripts` folder contains essential Python scripts for the Curvature Sensing System. These scripts handle data collection, processing, robot control, and feature extraction. Below is a detailed description of the included scripts.
+This project implements a complete pipeline for curvature sensing using audio-based FFT features and robot-assisted data collection. The system includes scripts for data collection, synchronization, preprocessing, and machine learning model training and evaluation.
+
+---
 
 ## Folder Structure
 
 ```
-scripts/
-├── main.py                    # Central hub with a menu-driven interface
-├── curvature_data_collector.py # Records audio and performs real-time FFT analysis
-├── curvature_ros.py           # Controls the Franka robot arm for data collection
-├── csv_sync.py                # Synchronizes and merges audio and robot data
-├── curvature_fft_utils.py     # Utility functions for FFT processing
-├── frequency_gen.py           # Generates multi-tone signals for acoustic excitation
-├── trimmer.py                 # Trims raw data files for preprocessing
-├── requirements.txt           # Python dependencies for the scripts
+curvature_sensor/
+├── csv_data/                  # All experimental data (raw, merged, preprocessed)
+│   ├── raw/                   # Raw FFT and robot CSVs
+│   ├── merged/                # Timestamp-aligned sensor and robot data
+│   ├── preprocessed/          # Feature-engineered, ML-ready datasets
+│   └── README.md              # Data format and flow documentation
+├── machine learning models/   # ML model training scripts and outputs
+│   ├── lightGBM_mode.py
+│   ├── mlp_regression.py
+│   ├── svr_regression.py
+│   ├── gpr.py
+│   ├── models/                # Saved models and metrics
+│   └── README.md
+├── scripts/                   # Data collection, processing, and utility scripts
+│   ├── main.py
+│   ├── curvature_data_collector.py
+│   ├── curvature_ros.py
+│   ├── new_merger.py
+│   ├── curvature_fft_utils.py
+│   ├── frequency_gen.py
+│   ├── trimmer.py
+│   └── requirements.txt
+├── requirements.txt           # Top-level Python dependencies
+└── README.md                  # Project documentation (this file)
 ```
 
-## Script Details
+---
 
-### 1. `main.py`
-- **Description**: Central hub script with a menu-driven interface to access all system functions.
-- **Usage**: Run this script to interact with the system through a menu.
-- **Key Features**:
-  - Provides options to run individual scripts for data collection, processing, and analysis.
+## Scripts
 
-### 2. `curvature_data_collector.py`
-- **Description**: Records audio and extracts FFT features in real-time.
-- **Key Functions**:
-  - `check_microphone()`: Validates microphone functionality.
-  - `audio_callback()`: Processes audio blocks and extracts FFT features.
-  - `main()`: Handles user input and recording control.
-- **Output**: `raw_audio_{curvature}.csv` (FFT features with timestamps).
+- **[main.py](scripts/main.py)**: Menu-driven interface to access all system functions.
+- **[curvature_data_collector.py](scripts/curvature_data_collector.py)**: Records audio and extracts FFT features in real-time.
+- **[curvature_ros.py](scripts/curvature_ros.py)**: Controls the Franka robot arm for systematic data collection.
+- **[new_merger.py](scripts/csv_sync.py)**: Synchronizes and merges audio and robot data by timestamp.
+- **[curvature_fft_utils.py](scripts/curvature_fft_utils.py)**: Utility functions for FFT processing and feature extraction.
+- **[frequency_gen.py](scripts/frequency_gen.py)**: Generates multi-tone signals for acoustic excitation.
+---
 
-### 3. `curvature_ros.py`
-- **Description**: Controls the Franka robot arm for systematic data collection.
-- **Key Functions**:
-  - `move_downwards()`: Performs systematic movements through test sections.
-  - `set_force_publisher()`: Controls force application.
-  - `open_gripper()/close_gripper()`: Manages the gripper.
-- **Output**: `raw_robot_{curvature}.csv` (Robot position data with timestamps).
+## Machine Learning Models
 
-### 4. `csv_sync.py`
-- **Description**: Synchronizes and merges audio and robot data based on timestamps.
-- **Key Functions**:
-  - `merge_csvs()`: Merges file pairs based on nearest timestamps.
-- **Output**: `merged_{curvature}.csv` (Combined audio and position data).
+All model scripts are in [machine learning models/](machine%20learning%20models/):
 
-### 5. `curvature_fft_utils.py`
-- **Description**: Provides utility functions for FFT processing and frequency analysis.
-- **Key Functions**:
-  - `extract_fft_features()`: Extracts frequency domain features from signals.
+- **[lightGBM_mode.py](machine%20learning%20models/lightGBM_mode.py)**: Multi-output regression using LightGBM.
+- **[mlp_regression.py](machine%20learning%20models/mlp_regression.py)**: Multi-layer perceptron regression for position and curvature.
+- **[svr_regression.py](machine%20learning%20models/svr_regression.py)**: Support Vector Regression for multi-output prediction.
+- **[gpr.py](machine%20learning%20models/gpr.py)**: Gaussian Process Regression for curvature and position.
+- **[models/](machine%20learning%20models/models/)**: Stores trained models and output metrics.
 
-### 6. `frequency_gen.py`
-- **Description**: Generates multi-tone signals for acoustic excitation.
-- **Key Features**:
-  - Produces consistent reference frequencies for sensing.
+---
 
-### 7. `trimmer.py`
-- **Description**: Trims raw data files for preprocessing.
-- **Key Features**:
-  - Removes unnecessary data segments to prepare for further processing.
+## CSV Data
 
-### 8. `requirements.txt`
-- **Description**: Lists the Python dependencies required for the scripts.
-- **Installation**:
-  ```bash
-  pip install -r requirements.txt
-  ```
+See [csv_data/README.md](csv_data/README.md) for full details.
+
+- **raw/**: Contains raw sensor and robot data (`raw_audio_*.csv`, `raw_robot_*.csv`).
+- **merged/**: Contains merged files aligning audio and robot data by timestamp.
+
+---
 
 ## Usage
 
-### Using the Menu Interface
-Run the following command to access the menu-driven interface:
-```bash
+### Menu Interface
+
+```sh
 python scripts/main.py
 ```
 
-### Running Individual Scripts
-Each script can also be run individually. For example:
+### Run Individual Scripts
+
 - Collect FFT data:
-  ```bash
+  ```sh
   python scripts/curvature_data_collector.py
   ```
 - Merge CSV files:
-  ```bash
+  ```sh
   python scripts/csv_sync.py
   ```
+- Train a model (example for LightGBM):
+  ```sh
+  python "machine learning models/lightGBM_mode.py"
+  ```
 
-## Authors
-- **Bipindra Rai**: Core functionality and system design.
-- **Tariq**: ROS integration and robot control.
+---
+
+## Requirements
+
+Install dependencies with:
+
+```sh
+pip install -r requirements.txt
+```
+
+---
+
+

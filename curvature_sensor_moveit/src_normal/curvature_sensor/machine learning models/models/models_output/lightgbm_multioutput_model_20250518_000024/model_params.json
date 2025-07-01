@@ -1,0 +1,13 @@
+{
+  "estimator__subsample": 0.8,
+  "estimator__reg_lambda": 0,
+  "estimator__reg_alpha": 0,
+  "estimator__num_leaves": 50,
+  "estimator__n_estimators": 200,
+  "estimator__min_child_samples": 50,
+  "estimator__max_depth": 10,
+  "estimator__learning_rate": 0.1,
+  "estimator__colsample_bytree": 1.0,
+  "test_size": 0.2,
+  "random_state": 42
+}
